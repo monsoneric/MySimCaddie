@@ -12,10 +12,28 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Margin="56,44,56,12">
-                    <TextBlock Text="SETUP" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
-                    <TextBlock Text="Your room" FontFamily="{StaticResource DisplayFont}" FontSize="44" FontWeight="SemiBold" />
-                </StackPanel>
+                <Grid Margin="56,44,56,12">
+                    <StackPanel>
+                        <TextBlock Text="SETUP" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                        <TextBlock Text="Your room" FontFamily="{StaticResource DisplayFont}" FontSize="44" FontWeight="SemiBold" />
+                    </StackPanel>
+
+                    <!-- Always-visible way back to the home screen -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Style="{StaticResource PillButton}" Click="Cancel_Click" Margin="0" ToolTip="Back to the home screen without saving (Esc)">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" FontSize="18" />
+                                <TextBlock Text="Back" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource PrimaryPill}" Click="Save_Click" Margin="14,0,0,0" ToolTip="Save and go back to the home screen">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" FontSize="18" />
+                                <TextBlock Text="Save &amp; close" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="56,8,56,8" Focusable="False">
                     <StackPanel>
@@ -135,8 +153,8 @@
 
                 <Border Grid.Row="2" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1.5,0,0" Padding="56,22,56,8">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Style="{StaticResource PillButton}" Click="Cancel_Click" Content="Cancel" Padding="30,0" />
-                        <Button Style="{StaticResource PrimaryPill}" Click="Save_Click" Content="Save" Padding="40,0" Margin="0,0,0,16" />
+                        <Button Style="{StaticResource PillButton}" Click="Cancel_Click" Content="Back without saving" Padding="30,0" />
+                        <Button Style="{StaticResource PrimaryPill}" Click="Save_Click" Content="Save &amp; close" Padding="40,0" Margin="0,0,0,16" />
                     </StackPanel>
                 </Border>
             </Grid>
