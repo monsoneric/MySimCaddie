@@ -26,7 +26,6 @@ public partial class MainWindow : Window
 
     private CancellationTokenSource? _sessionCts;
     private DateTime _endArmedUntil = DateTime.MinValue;
-    private DateTime _exitArmedUntil = DateTime.MinValue;
 
     public MainWindow(AppConfig config, bool showSetup)
     {
@@ -50,6 +49,7 @@ public partial class MainWindow : Window
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closed += OnClosed;
+        Closing += Window_Closing;
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
         if (ConfigStore.LastLoadError is { } err)
@@ -379,22 +379,71 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (DateTime.UtcNow > _exitArmedUntil)
+        _vm.IsExitPromptOpen = true;
+        Dispatcher.InvokeAsync(() => ExitConfirmButton.Focus(), DispatcherPriority.Loaded);
+    }
+
+    private void ExitConfirm_Click(object sender, RoutedEventArgs e) => ExitApp();
+
+    private void ExitDesktop_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.IsExitPromptOpen = false;
+        WindowState = WindowState.Minimized;
+    }
+
+    private void ExitCancel_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.IsExitPromptOpen = false;
+        FocusFirstTile();
+    }
+
+    private bool _exiting;
+
+    /// <summary>Close for real. Falls back to a hard exit if anything keeps the process alive.</summary>
+    private void ExitApp()
+    {
+        if (_exiting) return;
+        _exiting = true;
+        Log.Info("Exit requested");
+        _sessionCts?.Cancel();
+
+        var watchdog = new Thread(() =>
         {
-            _exitArmedUntil = DateTime.UtcNow.AddSeconds(4);
-            ExitText.Text = "Tap again to exit";
-            Later.Run(TimeSpan.FromSeconds(4), () => ExitText.Text = "Exit");
-            return;
-        }
+            Thread.Sleep(3000);
+            Log.Warn("Normal shutdown stalled; forcing exit");
+            Environment.Exit(0);
+        }) { IsBackground = true };
+        watchdog.Start();
 
         Application.Current.Shutdown();
     }
 
+    private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        // Alt+F4 lands here. Let it exit, but go through the same path so the watchdog applies.
+        if (!_exiting)
+        {
+            e.Cancel = true;
+            Dispatcher.InvokeAsync(ExitApp);
+        }
+    }
+
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && _vm.IsSetupOpen)
+        if (e.Key == Key.Escape && _vm.IsExitPromptOpen)
+        {
+            _vm.IsExitPromptOpen = false;
+            FocusFirstTile();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape && _vm.IsSetupOpen)
         {
             SetupPanel.Cancel();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Q && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            Exit_Click(this, new RoutedEventArgs());
             e.Handled = true;
         }
         else if (e.Key == Key.F5)

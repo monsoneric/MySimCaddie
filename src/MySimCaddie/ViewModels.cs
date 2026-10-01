@@ -198,6 +198,9 @@ public sealed class MainVm : Observable
     private bool _isToastVisible;
     public bool IsToastVisible { get => _isToastVisible; set => Set(ref _isToastVisible, value); }
 
+    private bool _isExitPromptOpen;
+    public bool IsExitPromptOpen { get => _isExitPromptOpen; set => Set(ref _isExitPromptOpen, value); }
+
     private bool _isSetupOpen;
     public bool IsSetupOpen { get => _isSetupOpen; set => Set(ref _isSetupOpen, value); }
 }

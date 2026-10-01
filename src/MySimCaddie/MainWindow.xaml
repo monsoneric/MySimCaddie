@@ -272,6 +272,35 @@
                 <!-- ── Setup ── -->
                 <views:SetupView x:Name="SetupPanel" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVis}}" />
 
+                <!-- ── Exit prompt ── -->
+                <Grid Visibility="{Binding IsExitPromptOpen, Converter={StaticResource BoolToVis}}" Background="#C7F8FAFC">
+                    <Border Width="760" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="{StaticResource SolidCardBrush}" CornerRadius="32" Padding="56,48"
+                            Effect="{StaticResource CardShadowLifted}">
+                        <StackPanel>
+                            <TextBlock Text="LEAVING THE CLUBHOUSE?" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="Exit MySimCaddie" FontFamily="{StaticResource DisplayFont}" FontSize="46" FontWeight="SemiBold" />
+                            <TextBlock FontSize="19" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,30"
+                                       Text="Show desktop hides MySimCaddie but keeps it running. Ctrl + Alt + H brings it back." />
+                            <WrapPanel>
+                                <Button x:Name="ExitConfirmButton" Style="{StaticResource DangerPill}" Click="ExitConfirm_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="18" />
+                                        <TextBlock Text="Exit MySimCaddie" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource PillButton}" Click="ExitDesktop_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE7F8;" FontSize="18" />
+                                        <TextBlock Text="Show desktop" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource PillButton}" Click="ExitCancel_Click" Content="Cancel" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
                 <!-- ── Toast ── -->
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,72,128"
                         Background="{StaticResource InkBrush}" CornerRadius="18" Padding="24,16" MaxWidth="760"

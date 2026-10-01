@@ -26,6 +26,7 @@ A full-screen home screen for **JuiceBoxGuy's Hack Shack**, the golf simulator r
 | Start a session | Click a tile, or select it with the arrow keys and press Enter |
 | Get back to MySimCaddie from GSPro | **Ctrl + Alt + H** |
 | End a session early | **End Session** (tap twice). This closes GSPro, SimTuner and GSPro Connect |
+| Exit or hide | **Exit** button (or **Ctrl + Q** / **Alt + F4**), then **Exit MySimCaddie** or **Show desktop** |
 | Refresh status | **F5** |
 | Close Setup | **Esc** |
 
