@@ -1,0 +1,285 @@
+<Window x:Class="MySimCaddie.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:MySimCaddie.Views"
+        Title="MySimCaddie"
+        Icon="Assets/MySimCaddie.ico"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Foreground="{StaticResource InkBrush}"
+        ShowInTaskbar="True"
+        Background="{StaticResource SolidCardBrush}"
+        Width="1280" Height="720"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0.6,1">
+                <GradientStop Color="{StaticResource CanvasTopColor}" Offset="0" />
+                <GradientStop Color="{StaticResource CanvasBottomColor}" Offset="1" />
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Everything is laid out on a fixed 1920×1080 canvas and scaled to the TV, so it looks the same at any resolution. -->
+        <Viewbox Stretch="Uniform">
+            <Grid Width="1920" Height="1080">
+
+                <!-- Room logo behind everything -->
+                <Image Source="{Binding Logo}" Opacity="{Binding LogoOpacity}" Stretch="Uniform"
+                       Width="1000" Height="760" Margin="0,80,0,0"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- ── Header ── -->
+                    <Grid Grid.Row="0" Margin="72,52,72,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="92" Height="92" CornerRadius="24" Background="{StaticResource SolidCardBrush}"
+                                    Effect="{StaticResource CardShadow}" Margin="0,0,26,0"
+                                    Visibility="{Binding HasLogo, Converter={StaticResource BoolToVis}}">
+                                <Image Source="{Binding Logo}" Margin="10" RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="MYSIMCADDIE" FontSize="17" FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentBrush}" Margin="3,0,0,0" />
+                                <TextBlock Text="{Binding RoomName}" FontFamily="{StaticResource DisplayFont}"
+                                           FontSize="54" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Time}" FontFamily="{StaticResource DisplayFont}" FontSize="64"
+                                       FontWeight="Light" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding Date}" FontSize="20" Foreground="{StaticResource MutedBrush}"
+                                       HorizontalAlignment="Right" Margin="0,-4,4,0" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ── Tiles + quick launch ── -->
+                    <StackPanel Grid.Row="1" Margin="72,44,40,0">
+                        <TextBlock Text="Choose your session" Style="{StaticResource SectionLabel}" />
+
+                        <ItemsControl x:Name="TilesList" ItemsSource="{Binding Tiles}" Focusable="False"
+                                      KeyboardNavigation.DirectionalNavigation="Contained">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource TileButton}" Click="Tile_Click">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <Border Width="78" Height="78" CornerRadius="22" HorizontalAlignment="Left"
+                                                    Background="{Binding AccentSoft}">
+                                                <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="36"
+                                                           Foreground="{Binding Accent}" />
+                                            </Border>
+
+                                            <TextBlock Grid.Row="2" Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}"
+                                                       FontSize="32" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Row="3" Text="{Binding Subtitle}" FontSize="18"
+                                                       Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
+                                                       Margin="0,6,0,0" MaxHeight="50" TextTrimming="CharacterEllipsis" />
+
+                                            <Border Grid.Row="4" Style="{StaticResource Chip}" HorizontalAlignment="Left" Margin="0,18,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="10" Height="10" VerticalAlignment="Center">
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="Fill" Value="{StaticResource OkBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsReady}" Value="False">
+                                                                        <Setter Property="Fill" Value="{StaticResource WarnBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+                                                    <TextBlock Text="{Binding ReadyText}" FontSize="15" Margin="8,0,0,0"
+                                                               VerticalAlignment="Center" MaxWidth="300" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Quick launch" Style="{StaticResource SectionLabel}" Margin="4,12,0,16" />
+                        <ItemsControl ItemsSource="{Binding QuickItems}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource PillButton}" Click="Quick_Click" ToolTip="{Binding ToolTip}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="20"
+                                                       Foreground="{DynamicResource AccentBrush}" />
+                                            <TextBlock Text="{Binding Name}" FontSize="18" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- ── Status bar ── -->
+                    <Border Grid.Row="2" Background="#D9FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1.5,0,0"
+                            Padding="72,22">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ItemsControl ItemsSource="{Binding DisplayChips}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Chip}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="10" Height="10" Fill="{Binding Dot}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Label}" FontSize="15" FontWeight="SemiBold" Margin="8,0,0,0" />
+                                                    <TextBlock Text="{Binding Detail}" FontSize="15" Foreground="{StaticResource MutedBrush}"
+                                                               Margin="6,0,0,0" MaxWidth="260" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Rectangle Width="1.5" Height="28" Fill="{StaticResource LineBrush}" Margin="8,0,18,0" />
+
+                                <ItemsControl ItemsSource="{Binding AppChips}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Chip}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="10" Height="10" Fill="{Binding Dot}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Label}" FontSize="15" FontWeight="SemiBold" Margin="8,0,0,0" />
+                                                    <TextBlock Text="{Binding Detail}" FontSize="15" Foreground="{StaticResource MutedBrush}" Margin="6,0,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="Identify_Click" ToolTip="Show which display is which">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" FontSize="18" />
+                                        <TextBlock Text="Identify" FontSize="17" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="Setup_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE713;" FontSize="18" />
+                                        <TextBlock Text="Setup" FontSize="17" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="ExitButton" Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="Exit_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="18" />
+                                        <TextBlock x:Name="ExitText" Text="Exit" FontSize="17" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ── Session in progress ── -->
+                <Grid Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVis}}" Background="#C7F8FAFC">
+                    <Border Width="1000" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="{StaticResource SolidCardBrush}" CornerRadius="32" Padding="60,52"
+                            Effect="{StaticResource CardShadowLifted}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding SessionPhase}" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="{Binding SessionTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="50" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding SessionMessage}" FontSize="22" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding SessionHint}" FontSize="18" Foreground="{StaticResource MutedBrush}"
+                                       TextWrapping="Wrap" Margin="0,6,0,0" />
+
+                            <ItemsControl ItemsSource="{Binding Steps}" Margin="0,30,0,0" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="44" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="22"
+                                                       Foreground="{Binding Color}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,3,0,0" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Title}" FontSize="21" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Detail}" FontSize="16" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                                <Button x:Name="EndSessionButton" Style="{StaticResource DangerPill}" Click="EndSession_Click"
+                                        IsEnabled="{Binding CanEndSession}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE71A;" FontSize="18" Foreground="{StaticResource BadBrush}" />
+                                        <TextBlock x:Name="EndSessionText" Text="End Session" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Text="Ctrl + Alt + H brings this screen back from anywhere" FontSize="16"
+                                           Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="12,0,0,16" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ── Setup ── -->
+                <views:SetupView x:Name="SetupPanel" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVis}}" />
+
+                <!-- ── Toast ── -->
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,72,128"
+                        Background="{StaticResource InkBrush}" CornerRadius="18" Padding="24,16" MaxWidth="760"
+                        Effect="{StaticResource CardShadowLifted}" IsHitTestVisible="False"
+                        Visibility="{Binding IsToastVisible, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding Toast}" Foreground="White" FontSize="18" TextWrapping="Wrap" />
+                </Border>
+            </Grid>
+        </Viewbox>
+    </Grid>
+</Window>

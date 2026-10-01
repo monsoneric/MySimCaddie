@@ -1,0 +1,58 @@
+name: Build MySimCaddie
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish single-file exe
+        run: dotnet publish src/MySimCaddie/MySimCaddie.csproj -c Release -o publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MySimCaddie-${{ github.sha }}
+          path: publish/MySimCaddie.exe
+
+      # Every push to main refreshes one stable download link:
+      # https://github.com/<owner>/MySimCaddie/releases/download/latest/MySimCaddie.exe
+      - name: Move "latest" tag
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          git tag -f latest
+          git push -f origin latest
+
+      - name: Publish "latest" release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: MySimCaddie (latest build)
+          prerelease: true
+          files: publish/MySimCaddie.exe
+          body: |
+            Newest build from `main` (${{ github.sha }}).
+            Download **MySimCaddie.exe** below, put it somewhere permanent (e.g. `C:\MySimCaddie\`), and run it.
+
+      - name: Publish versioned release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/MySimCaddie.exe
+          generate_release_notes: true
