@@ -27,7 +27,8 @@ public partial class SetupView : UserControl
     {
         _cfg = cfg;
         _vm = SetupVm.From(cfg, DisplayService.GetDisplays());
-        DataContext = _vm;
+        // Only the inner root: the control's own DataContext must stay MainVm so its Visibility binding keeps working.
+        Root.DataContext = _vm;
     }
 
     public void Cancel() => Finished?.Invoke(false);
