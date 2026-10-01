@@ -115,21 +115,43 @@ public partial class SetupView : UserControl
 
     private void AddApp_Click(object sender, RoutedEventArgs e)
     {
-        if (_vm is null) return;
+        var row = PickApp();
+        if (row is not null && _vm is not null)
+            _vm.Message = $"Added {row.Name}. Rename it if you like, then use it in a scenario.";
+    }
+
+    /// <summary>Step-level Browse…: find an .exe, add it as an app (or reuse a matching one), and select it.</summary>
+    private void BrowseStepApp_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || ((FrameworkElement)sender).DataContext is not StepEditVm step) return;
+        var row = PickApp();
+        if (row is null) return;
+        step.AppId = row.Id;
+        _vm.Message = $"Step uses {row.Name}. You can rename apps on the Room & apps tab.";
+    }
+
+    /// <summary>Show a file picker for an .exe. Returns the existing app with that path, a newly added app, or null.</summary>
+    private AppRowVm? PickApp()
+    {
+        if (_vm is null) return null;
         var dlg = new OpenFileDialog
         {
-            Title = "Choose the program to add",
+            Title = "Find the program (.exe)",
             Filter = "Programs (*.exe)|*.exe|All files (*.*)|*.*",
         };
         if (Directory.Exists(@"C:\Program Files")) dlg.InitialDirectory = @"C:\Program Files";
-        if (dlg.ShowDialog(Window.GetWindow(this)) != true) return;
+        if (dlg.ShowDialog(Window.GetWindow(this)) != true) return null;
+
+        var existing = _vm.Apps.FirstOrDefault(a => string.Equals(
+            Environment.ExpandEnvironmentVariables(a.Path.Trim().Trim('"')), dlg.FileName, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null) return existing;
 
         var name = FriendlyName(dlg.FileName);
         var row = new AppRowVm { Id = _vm.NewAppId(name), Name = name };
         row.Path = dlg.FileName;
         _vm.Apps.Add(row);
         _vm.SelectedProfile?.RefreshOptions();
-        _vm.Message = $"Added {name}. Rename it if you like, then use it in a scenario.";
+        return row;
     }
 
     private void RemoveApp_Click(object sender, RoutedEventArgs e)

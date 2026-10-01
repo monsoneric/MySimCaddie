@@ -43,7 +43,7 @@ A full-screen home screen for **JuiceBoxGuy's Hack Shack**, the golf simulator r
 Go to **Setup → Scenarios**. You don't need to edit any files.
 
 - **New scenario** creates a tile. Give it a name, subtitle, icon and color, then pick which display should be the **main display**. Games open full-screen there.
-- **Launch steps** run in order. For each one, choose the **app**, the display to **put it on**, how to place the window, and whether to **close it when the round ends**. Under **More options** you'll find:
+- **Launch steps** run in order. For each one, choose the **app** (or press **Browse…** on the step to find any .exe), the display to **put it on**, how to place the window, and whether to **close it when the round ends**. Under **More options** you'll find:
   - **Wait for program**, for launchers such as GSPLauncher that hand off to GSPro
   - **Pause after**
   - **If already running**

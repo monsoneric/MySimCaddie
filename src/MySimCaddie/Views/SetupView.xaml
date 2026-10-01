@@ -356,7 +356,9 @@
                                           Margin="170,0,0,0" FontSize="15" />
 
                                 <!-- Steps -->
-                                <TextBlock Text="Launch steps, in order" FontSize="21" FontWeight="SemiBold" Margin="0,26,0,10" />
+                                <TextBlock Text="Launch steps, in order" FontSize="21" FontWeight="SemiBold" Margin="0,26,0,2" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10"
+                                           Text="For each step, pick an app from the list or press Browse… to find a program's .exe." />
                                 <ItemsControl ItemsSource="{Binding Steps}" Focusable="False">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -374,8 +376,14 @@
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                         </Border>
                                                         <ComboBox Grid.Column="1" ItemsSource="{Binding AppOptions}" DisplayMemberPath="Name"
-                                                                  SelectedValuePath="Id" SelectedValue="{Binding AppId}" ToolTip="Which app to start" />
+                                                                  SelectedValuePath="Id" SelectedValue="{Binding AppId}" ToolTip="Pick an app you've already added, or use Browse to find a program" />
                                                         <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                            <Button Style="{StaticResource IconButton}" Click="BrowseStepApp_Click" ToolTip="Find the program's .exe on this PC">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8B7;" FontSize="15" />
+                                                                    <TextBlock Text="Browse…" FontSize="15" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </Button>
                                                             <Button Style="{StaticResource IconButton}" Click="StepUp_Click" ToolTip="Earlier">
                                                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE70E;" FontSize="14" />
                                                             </Button>
