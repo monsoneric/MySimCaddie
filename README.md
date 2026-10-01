@@ -38,7 +38,22 @@ A full-screen home screen for **JuiceBoxGuy's Hack Shack**, the golf simulator r
 4. Waits until `GSPro.exe` is running.
 5. When you close GSPro, it closes SimTuner and GSPro Connect, which is the Bushnell Launch Pro link.
 
-## Customizing
+## Adding your own scenarios
+
+Go to **Setup → Scenarios**. You don't need to edit any files.
+
+- **New scenario** creates a tile. Give it a name, subtitle, icon and color, then pick which display should be the **main display**. Games open full-screen there.
+- **Launch steps** run in order. For each one, choose the **app**, the display to **put it on**, how to place the window, and whether to **close it when the round ends**. Under **More options** you'll find:
+  - **Wait for program**, for launchers such as GSPLauncher that hand off to GSPro
+  - **Pause after**
+  - **If already running**
+- **The round is over when this closes** names the program that ends the round, usually the game. MySimCaddie then closes everything marked to close, plus anything ticked under **Then also close**.
+- **Start this scenario automatically** runs the scenario when MySimCaddie opens at sign-in.
+- Use **Up/Down** to reorder tiles, **Duplicate** to copy one as a starting point, and **Delete** (tap twice) to remove one.
+
+To add a program such as E6 Connect, FSX or ShotForge, go to **Setup → Room & apps → Add an app** first. It then shows up in each step's app list.
+
+## Customizing (advanced)
 
 Everything lives in `%APPDATA%\MySimCaddie\config.json`. Setup → **Open config folder** takes you there. Restart MySimCaddie after hand-editing it. If the JSON has a mistake, MySimCaddie falls back to defaults and keeps a copy named `config.json.broken-*`.
 
