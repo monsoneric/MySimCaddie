@@ -12,7 +12,7 @@ public static class DefaultConfig
 
     public static AppConfig Create()
     {
-        var cfg = new AppConfig();
+        var cfg = new AppConfig { Version = ConfigStore.CurrentVersion, BackgroundLogoOpacity = 0.9 };
 
         cfg.Apps[GsproId] = new AppDefinition
         {
@@ -66,6 +66,8 @@ public static class DefaultConfig
                     // GSPLauncher hands off to GSPro.exe once you press Play.
                     WaitForProcess = "GSPro",
                     WaitInBackground = true,
+                    AutoClickWindow = GsproPreset.Window,
+                    AutoClickButton = GsproPreset.Button,
                 },
             },
         });
@@ -82,7 +84,11 @@ public static class DefaultConfig
             AlsoCloseOnEnd = { GspConnectId },
             Steps =
             {
-                new LaunchStep { App = GsproId, WaitForProcess = "GSPro", WaitInBackground = true },
+                new LaunchStep
+                {
+                    App = GsproId, WaitForProcess = "GSPro", WaitInBackground = true,
+                    AutoClickWindow = GsproPreset.Window, AutoClickButton = GsproPreset.Button,
+                },
             },
         });
 

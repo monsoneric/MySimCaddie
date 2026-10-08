@@ -205,9 +205,19 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="220" />
                                     <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Tile position" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1" ItemsSource="{x:Static views:SetupChoices.TileLayouts}" DisplayMemberPath="Text"
+                                          SelectedValuePath="Value" SelectedValue="{Binding TileLayout}" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="80" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Logo strength" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <TextBlock Text="Logo visibility" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding LogoOpacity}" VerticalAlignment="Center"
                                         SmallChange="0.05" LargeChange="0.1" />
                                 <TextBlock Grid.Column="2" Text="{Binding LogoOpacity, StringFormat={}{0:P0}}" FontSize="17"
@@ -405,6 +415,12 @@
                                                         <CheckBox Content="Close it when the round ends" IsChecked="{Binding CloseOnEnd}" FontSize="15" />
                                                     </WrapPanel>
 
+                                                    <StackPanel Orientation="Horizontal" Margin="44,10,0,0"
+                                                                Visibility="{Binding HasAutoClick, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8B0;" FontSize="15" Foreground="{DynamicResource AccentBrush}" />
+                                                        <TextBlock Text="{Binding AutoClickSummary}" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource AccentBrush}" />
+                                                    </StackPanel>
+
                                                     <Expander Header="More options" Margin="44,10,0,0" FontSize="14" Foreground="{StaticResource MutedBrush}">
                                                         <StackPanel Margin="0,10,0,0">
                                                             <WrapPanel>
@@ -422,6 +438,16 @@
                                                                           SelectedValuePath="Value" SelectedValue="{Binding IfRunning}" Margin="0,0,16,6" />
                                                                 <CheckBox Content="Don't wait for it before the next step" IsChecked="{Binding WaitInBackground}" FontSize="14"
                                                                           Foreground="{StaticResource InkBrush}" />
+                                                            </WrapPanel>
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <TextBlock Text="Auto-press button" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <TextBox Width="110" Height="38" FontSize="14" Text="{Binding AutoClickButton, UpdateSourceTrigger=PropertyChanged}"
+                                                                         ToolTip="Button text, e.g. Play!" Margin="0,0,8,6" />
+                                                                <TextBlock Text="in the pop-up titled" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <TextBox Width="200" Height="38" FontSize="14" Text="{Binding AutoClickWindow, UpdateSourceTrigger=PropertyChanged}"
+                                                                         ToolTip="Part of the pop-up window's title, e.g. GSPro Configuration" Margin="0,0,12,6" />
+                                                                <Button Style="{StaticResource IconButton}" Margin="0,0,0,6" Height="38" Click="GsproPreset_Click"
+                                                                        Content="Use GSPro's Play!" FontSize="14" ToolTip="Fill in GSPro's launcher pop-up" />
                                                             </WrapPanel>
                                                         </StackPanel>
                                                     </Expander>

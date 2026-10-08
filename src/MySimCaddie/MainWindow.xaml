@@ -30,12 +30,6 @@
         <Viewbox Stretch="Uniform">
             <Grid Width="1920" Height="1080">
 
-                <!-- Room logo behind everything -->
-                <Image Source="{Binding Logo}" Opacity="{Binding LogoOpacity}" Stretch="Uniform"
-                       Width="1000" Height="760" Margin="0,80,0,0"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
-
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -67,85 +61,102 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- ── Tiles + quick launch ── -->
-                    <StackPanel Grid.Row="1" Margin="72,44,40,0">
-                        <TextBlock Text="Choose your session" Style="{StaticResource SectionLabel}" />
+                    <!-- ── Tiles + quick launch, and the room logo in its own space ── -->
+                    <!-- Columns/rows are rearranged in code for the Left / Right / Top tile layouts. -->
+                    <Grid x:Name="ContentGrid" Grid.Row="1" Margin="72,30,72,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="ColA" Width="440" />
+                            <ColumnDefinition x:Name="ColGap" Width="56" />
+                            <ColumnDefinition x:Name="ColB" Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition x:Name="RowTop" Height="*" />
+                            <RowDefinition x:Name="RowBottom" Height="0" />
+                        </Grid.RowDefinitions>
 
-                        <ItemsControl x:Name="TilesList" ItemsSource="{Binding Tiles}" Focusable="False"
-                                      KeyboardNavigation.DirectionalNavigation="Contained">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Style="{StaticResource TileButton}" Click="Tile_Click">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="*" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
+                        <ScrollViewer x:Name="TilesArea" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                            <StackPanel>
+                                <TextBlock Text="Choose your session" Style="{StaticResource SectionLabel}" Margin="4,0,0,12" />
 
-                                            <Border Width="78" Height="78" CornerRadius="22" HorizontalAlignment="Left"
-                                                    Background="{Binding AccentSoft}">
-                                                <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="36"
-                                                           Foreground="{Binding Accent}" />
-                                            </Border>
+                                <ItemsControl x:Name="TilesList" ItemsSource="{Binding Tiles}" Focusable="False"
+                                              KeyboardNavigation.DirectionalNavigation="Contained">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource TileButton}" Click="Tile_Click">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
 
-                                            <TextBlock Grid.Row="2" Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}"
-                                                       FontSize="32" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Row="3" Text="{Binding Subtitle}" FontSize="18"
-                                                       Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
-                                                       Margin="0,6,0,0" MaxHeight="50" TextTrimming="CharacterEllipsis" />
+                                                    <Border Width="64" Height="64" CornerRadius="18" VerticalAlignment="Center"
+                                                            Background="{Binding AccentSoft}">
+                                                        <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="30"
+                                                                   Foreground="{Binding Accent}" />
+                                                    </Border>
 
-                                            <Border Grid.Row="4" Style="{StaticResource Chip}" HorizontalAlignment="Left" Margin="0,18,0,0">
+                                                    <StackPanel Grid.Column="1" Margin="18,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}"
+                                                                   FontSize="25" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Subtitle}" FontSize="15" Foreground="{StaticResource MutedBrush}"
+                                                                   TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                            <Ellipse Width="8" Height="8" VerticalAlignment="Center">
+                                                                <Ellipse.Style>
+                                                                    <Style TargetType="Ellipse">
+                                                                        <Setter Property="Fill" Value="{StaticResource OkBrush}" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsReady}" Value="False">
+                                                                                <Setter Property="Fill" Value="{StaticResource WarnBrush}" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Ellipse.Style>
+                                                            </Ellipse>
+                                                            <TextBlock Text="{Binding ReadyText}" FontSize="13" Foreground="{StaticResource MutedBrush}"
+                                                                       Margin="7,0,0,0" VerticalAlignment="Center" MaxWidth="280" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="Quick launch" Style="{StaticResource SectionLabel}" Margin="4,10,0,12" />
+                                <ItemsControl ItemsSource="{Binding QuickItems}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource PillButton}" Click="Quick_Click" ToolTip="{Binding ToolTip}"
+                                                    Height="48" Margin="0,0,12,12" Padding="18,0">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Ellipse Width="10" Height="10" VerticalAlignment="Center">
-                                                        <Ellipse.Style>
-                                                            <Style TargetType="Ellipse">
-                                                                <Setter Property="Fill" Value="{StaticResource OkBrush}" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsReady}" Value="False">
-                                                                        <Setter Property="Fill" Value="{StaticResource WarnBrush}" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Ellipse.Style>
-                                                    </Ellipse>
-                                                    <TextBlock Text="{Binding ReadyText}" FontSize="15" Margin="8,0,0,0"
-                                                               VerticalAlignment="Center" MaxWidth="300" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="18"
+                                                               Foreground="{DynamicResource AccentBrush}" />
+                                                    <TextBlock Text="{Binding Name}" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center" />
                                                 </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
 
-                        <TextBlock Text="Quick launch" Style="{StaticResource SectionLabel}" Margin="4,12,0,16" />
-                        <ItemsControl ItemsSource="{Binding QuickItems}" Focusable="False">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Style="{StaticResource PillButton}" Click="Quick_Click" ToolTip="{Binding ToolTip}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="20"
-                                                       Foreground="{DynamicResource AccentBrush}" />
-                                            <TextBlock Text="{Binding Name}" FontSize="18" Margin="12,0,0,0" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
+                        <!-- Room logo: its own space, never under the tiles -->
+                        <Image x:Name="LogoArea" Grid.Column="2" Grid.RowSpan="2" Source="{Binding Logo}" Opacity="{Binding LogoOpacity}"
+                               Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False" />
+                    </Grid>
 
                     <!-- ── Status bar ── -->
                     <Border Grid.Row="2" Background="#D9FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1.5,0,0"

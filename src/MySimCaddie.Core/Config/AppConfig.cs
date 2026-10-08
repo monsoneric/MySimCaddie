@@ -17,6 +17,9 @@ public sealed class AppConfig
 
     public string AccentColor { get; set; } = "#16A34A";
 
+    /// <summary>Where the tiles sit on the home screen: "Left", "Right" or "Top". The logo gets the rest.</summary>
+    public string TileLayout { get; set; } = TileLayouts.Left;
+
     /// <summary>Which display role the launcher itself lives on.</summary>
     public string LauncherDisplay { get; set; } = DisplayRoles.Tv;
 
@@ -37,6 +40,13 @@ public sealed class AppConfig
     public List<Profile> Profiles { get; set; } = new();
 
     public List<QuickLink> QuickLinks { get; set; } = new();
+}
+
+public static class TileLayouts
+{
+    public const string Left = "Left";
+    public const string Right = "Right";
+    public const string Top = "Top";
 }
 
 public static class DisplayRoles
@@ -169,6 +179,36 @@ public sealed class LaunchStep
     public int DelayAfterSeconds { get; set; }
 
     public bool CloseOnEnd { get; set; }
+
+    /// <summary>
+    /// Press a button in a pop-up automatically, e.g. "Play!" in the "GSPro Configuration" window.
+    /// Matches any visible window whose title contains this text (empty = off).
+    /// </summary>
+    public string AutoClickWindow { get; set; } = "";
+
+    public string AutoClickButton { get; set; } = "";
+
+    public int AutoClickTimeoutSeconds { get; set; } = 180;
+}
+
+public static class GsproPreset
+{
+    public const string Window = "GSPro Configuration";
+    public const string Button = "Play!";
+
+    public static bool IsGspro(string? exePath)
+    {
+        var name = System.IO.Path.GetFileName(Environment.ExpandEnvironmentVariables(exePath ?? ""));
+        return name.Equals("GSPLauncher.exe", StringComparison.OrdinalIgnoreCase)
+               || name.Equals("GSPro.exe", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Fill in GSPro's auto-press + hand-off defaults on a step if they're empty.</summary>
+    public static void Apply(LaunchStep step)
+    {
+        if (string.IsNullOrWhiteSpace(step.AutoClickWindow)) step.AutoClickWindow = Window;
+        if (string.IsNullOrWhiteSpace(step.AutoClickButton)) step.AutoClickButton = Button;
+    }
 }
 
 public sealed class QuickLink

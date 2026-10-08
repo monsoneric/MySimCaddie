@@ -34,7 +34,7 @@ A full-screen home screen for **JuiceBoxGuy's Hack Shack**, the golf simulator r
 
 1. Makes the projector the main display.
 2. Starts SimTuner, moves it to the 27" monitor and maximizes it.
-3. Starts the GSPro launcher. You press Play.
+3. Starts the GSPro launcher and presses **Play!** in its "GSPro Configuration" pop-up for you.
 4. Waits until `GSPro.exe` is running.
 5. When you close GSPro, it closes SimTuner and GSPro Connect, which is the Bushnell Launch Pro link.
 
@@ -47,11 +47,16 @@ Go to **Setup → Scenarios**. You don't need to edit any files.
   - **Wait for program**, for launchers such as GSPLauncher that hand off to GSPro
   - **Pause after**
   - **If already running**
+- **Auto-press button** (under **More options**) clicks a button in a pop-up for you. For GSPro, that's **Play!** in "GSPro Configuration", and **Use GSPro's Play!** fills it in. Browsing to GSPLauncher.exe on a step sets this up automatically.
 - **The round is over when this closes** names the program that ends the round, usually the game. MySimCaddie then closes everything marked to close, plus anything ticked under **Then also close**.
 - **Start this scenario automatically** runs the scenario when MySimCaddie opens at sign-in.
 - Use **Up/Down** to reorder tiles, **Duplicate** to copy one as a starting point, and **Delete** (tap twice) to remove one.
 
 To add a program such as E6 Connect, FSX or ShotForge, go to **Setup → Room & apps → Add an app** first. It then shows up in each step's app list.
+
+## Home screen layout
+
+**Setup → Room & apps → Look → Tile position** puts the tiles in a column on the left, a column on the right, or a row across the top. Your logo fills the rest of the screen. **Logo visibility** controls how strongly it shows.
 
 ## Customizing (advanced)
 

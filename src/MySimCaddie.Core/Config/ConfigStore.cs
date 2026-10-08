@@ -9,6 +9,9 @@ public static class ConfigStore
     public static string DataDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MySimCaddie");
 
+    /// <summary>2 = GSPro auto-press + tile layout.</summary>
+    public const int CurrentVersion = 2;
+
     public static string ConfigPath => Path.Combine(DataDirectory, "config.json");
 
     public static readonly JsonSerializerOptions JsonOptions = new()
@@ -40,6 +43,7 @@ public static class ConfigStore
             var json = File.ReadAllText(ConfigPath);
             var cfg = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions) ?? DefaultConfig.Create();
             Normalize(cfg);
+            if (Migrate(cfg)) Save(cfg);
             return cfg;
         }
         catch (Exception ex)
@@ -65,6 +69,29 @@ public static class ConfigStore
         var tmp = ConfigPath + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(cfg, JsonOptions));
         File.Move(tmp, ConfigPath, overwrite: true);
+    }
+
+    private static bool Migrate(AppConfig cfg)
+    {
+        if (cfg.Version >= CurrentVersion) return false;
+
+        if (cfg.Version < 2)
+        {
+            // GSPro steps now press the launcher's Play! button automatically.
+            foreach (var step in cfg.Profiles.SelectMany(p => p.Steps))
+            {
+                if (cfg.Apps.TryGetValue(step.App, out var app) && GsproPreset.IsGspro(app.Path))
+                    GsproPreset.Apply(step);
+            }
+
+            // The logo now has its own uncovered area, so the old watermark strength is too faint.
+            if (Math.Abs(cfg.BackgroundLogoOpacity - 0.22) < 0.001) cfg.BackgroundLogoOpacity = 0.9;
+            if (string.IsNullOrWhiteSpace(cfg.TileLayout)) cfg.TileLayout = TileLayouts.Left;
+        }
+
+        Log.Info($"Config upgraded from v{cfg.Version} to v{CurrentVersion}");
+        cfg.Version = CurrentVersion;
+        return true;
     }
 
     /// <summary>Re-key dictionaries case-insensitively and fill nulls from hand-edited JSON.</summary>

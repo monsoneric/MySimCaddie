@@ -132,6 +132,7 @@ public partial class MainWindow : Window
         _vm.RoomName = _cfg.RoomName;
         _vm.Logo = Ui.LoadImage(_cfg.LogoPath);
         _vm.LogoOpacity = Math.Clamp(_cfg.BackgroundLogoOpacity, 0, 1);
+        ApplyTileLayout(_cfg.TileLayout);
 
         _vm.Tiles.Clear();
         foreach (var p in _cfg.Profiles)
@@ -177,6 +178,48 @@ public partial class MainWindow : Window
         RefreshDisplayChips();
         RefreshAppChips();
         RefreshTileReadiness();
+    }
+
+    /// <summary>Tiles in a side column (Left/Right) or a row across the top; the logo gets the rest of the space.</summary>
+    private void ApplyTileLayout(string? layout)
+    {
+        var tileColumn = new GridLength(440);
+        var star = new GridLength(1, GridUnitType.Star);
+
+        void Place(UIElement e, int row, int col, int rowSpan, int colSpan)
+        {
+            Grid.SetRow(e, row);
+            Grid.SetColumn(e, col);
+            Grid.SetRowSpan(e, rowSpan);
+            Grid.SetColumnSpan(e, colSpan);
+        }
+
+        switch ((layout ?? "").Trim().ToLowerInvariant())
+        {
+            case "right":
+                ColA.Width = star; ColGap.Width = new GridLength(56); ColB.Width = tileColumn;
+                RowTop.Height = star; RowBottom.Height = new GridLength(0);
+                Place(TilesArea, 0, 2, 2, 1);
+                Place(LogoArea, 0, 0, 2, 1);
+                LogoArea.Margin = new Thickness(0);
+                break;
+
+            case "top":
+                ColA.Width = star; ColGap.Width = new GridLength(0); ColB.Width = new GridLength(0);
+                RowTop.Height = GridLength.Auto; RowBottom.Height = star;
+                Place(TilesArea, 0, 0, 1, 3);
+                Place(LogoArea, 1, 0, 1, 3);
+                LogoArea.Margin = new Thickness(0, 16, 0, 0);
+                break;
+
+            default: // left
+                ColA.Width = tileColumn; ColGap.Width = new GridLength(56); ColB.Width = star;
+                RowTop.Height = star; RowBottom.Height = new GridLength(0);
+                Place(TilesArea, 0, 0, 2, 1);
+                Place(LogoArea, 0, 2, 2, 1);
+                LogoArea.Margin = new Thickness(0);
+                break;
+        }
     }
 
     private void RefreshDisplayChips()
@@ -289,7 +332,7 @@ public partial class MainWindow : Window
         };
         _vm.SessionHint = u.Phase switch
         {
-            SessionPhase.WaitingForGame => "If the GSPro launcher is showing on the projector, press Play.",
+            SessionPhase.WaitingForGame => "MySimCaddie presses Play in the GSPro launcher for you. If it's still showing after a few seconds, press Play yourself.",
             SessionPhase.Playing => "Close GSPro when you're done and everything tidies up automatically.",
             _ => "",
         };

@@ -50,17 +50,17 @@
 
     <!-- ── Big profile tile ── -->
     <Style x:Key="TileButton" TargetType="Button">
-        <Setter Property="Width" Value="400" />
-        <Setter Property="Height" Value="300" />
-        <Setter Property="Margin" Value="0,0,32,32" />
+        <Setter Property="Width" Value="420" />
+        <Setter Property="Height" Value="112" />
+        <Setter Property="Margin" Value="0,0,20,14" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Card" CornerRadius="28" Background="{StaticResource SolidCardBrush}"
+                    <Border x:Name="Card" CornerRadius="22" Background="{StaticResource SolidCardBrush}"
                             BorderBrush="{StaticResource LineBrush}" BorderThickness="2"
-                            Effect="{StaticResource CardShadow}" Padding="32,30">
+                            Effect="{StaticResource CardShadow}" Padding="18,14">
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>

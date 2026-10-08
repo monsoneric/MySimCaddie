@@ -36,6 +36,8 @@ public partial class App : Application
         LaunchedAtLogin = e.Args.Any(a => a.Equals("--autostart", StringComparison.OrdinalIgnoreCase));
         Log.Info($"MySimCaddie {typeof(App).Assembly.GetName().Version} starting{(LaunchedAtLogin ? " (at login)" : "")}");
 
+        AutoClicker.FallbackClick = Services.UiaClicker.Click;
+
         var config = ConfigStore.Load();
 
         // First launch: take a guess at Projector / TV / Monitor from the monitor names.

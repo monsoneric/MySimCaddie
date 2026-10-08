@@ -128,6 +128,30 @@ public partial class SetupView : UserControl
         if (row is null) return;
         step.AppId = row.Id;
         _vm.Message = $"Step uses {row.Name}. You can rename apps on the Room & apps tab.";
+
+        if (GsproPreset.IsGspro(row.Path))
+        {
+            ApplyGsproPreset(step);
+            _vm.Message = "GSPro picked: it will press Play! in the launcher pop-up and wait for GSPro to open.";
+        }
+    }
+
+    private static void ApplyGsproPreset(StepEditVm step)
+    {
+        if (string.IsNullOrWhiteSpace(step.AutoClickWindow)) step.AutoClickWindow = GsproPreset.Window;
+        if (string.IsNullOrWhiteSpace(step.AutoClickButton)) step.AutoClickButton = GsproPreset.Button;
+        if (string.IsNullOrWhiteSpace(step.WaitForProcess)) step.WaitForProcess = "GSPro";
+        step.WaitInBackground = true;
+        step.Window = MySimCaddie.Core.Config.WindowMode.None; // GSPro goes full-screen on the main display itself
+        step.Display = "";
+    }
+
+    private void GsproPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || ((FrameworkElement)sender).DataContext is not StepEditVm step) return;
+        step.AutoClickWindow = GsproPreset.Window;
+        step.AutoClickButton = GsproPreset.Button;
+        _vm.Message = "This step will press Play! in the GSPro launcher pop-up.";
     }
 
     /// <summary>Show a file picker for an .exe. Returns the existing app with that path, a newly added app, or null.</summary>
@@ -372,6 +396,9 @@ public sealed class SetupVm : Observable
     private string _logoPath = "";
     public string LogoPath { get => _logoPath; set => Set(ref _logoPath, value); }
 
+    private string _tileLayout = TileLayouts.Left;
+    public string TileLayout { get => _tileLayout; set => Set(ref _tileLayout, string.IsNullOrWhiteSpace(value) ? TileLayouts.Left : value); }
+
     private double _logoOpacity;
     public double LogoOpacity { get => _logoOpacity; set => Set(ref _logoOpacity, Math.Round(value, 2)); }
 
@@ -395,6 +422,7 @@ public sealed class SetupVm : Observable
             RoomName = cfg.RoomName,
             LogoPath = cfg.LogoPath,
             LogoOpacity = cfg.BackgroundLogoOpacity,
+            TileLayout = cfg.TileLayout,
             StartWithWindows = cfg.StartWithWindows,
             ProjectorPrimaryAtStartup = cfg.PrimaryDisplayAtStartup.Equals(DisplayRoles.Projector, StringComparison.OrdinalIgnoreCase),
         };
@@ -460,6 +488,7 @@ public sealed class SetupVm : Observable
     {
         cfg.RoomName = string.IsNullOrWhiteSpace(RoomName) ? "My Sim Room" : RoomName.Trim();
         cfg.BackgroundLogoOpacity = Math.Clamp(LogoOpacity, 0, 1);
+        cfg.TileLayout = TileLayout;
         cfg.StartWithWindows = StartWithWindows;
         cfg.PrimaryDisplayAtStartup = ProjectorPrimaryAtStartup ? DisplayRoles.Projector : "";
         cfg.LogoPath = StoreLogo(LogoPath);

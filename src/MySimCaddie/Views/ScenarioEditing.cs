@@ -54,6 +54,13 @@ public static class SetupChoices
         new() { Value = WindowMode.None, Text = "Don't touch" },
     };
 
+    public static List<Choice> TileLayouts { get; } = new()
+    {
+        new() { Value = MySimCaddie.Core.Config.TileLayouts.Left, Text = "Column on the left" },
+        new() { Value = MySimCaddie.Core.Config.TileLayouts.Right, Text = "Column on the right" },
+        new() { Value = MySimCaddie.Core.Config.TileLayouts.Top, Text = "Row across the top" },
+    };
+
     public static List<Choice> IfRunning { get; } = new()
     {
         new() { Value = IfRunningBehavior.Skip, Text = "Use the running copy" },
@@ -123,6 +130,38 @@ public sealed class StepEditVm : Observable
     private IfRunningBehavior _ifRunning = IfRunningBehavior.Skip;
     public IfRunningBehavior IfRunning { get => _ifRunning; set => Set(ref _ifRunning, value); }
 
+    private string _autoClickWindow = "";
+    public string AutoClickWindow
+    {
+        get => _autoClickWindow;
+        set
+        {
+            if (Set(ref _autoClickWindow, value ?? "")) RaiseAutoClick();
+        }
+    }
+
+    private string _autoClickButton = "";
+    public string AutoClickButton
+    {
+        get => _autoClickButton;
+        set
+        {
+            if (Set(ref _autoClickButton, value ?? "")) RaiseAutoClick();
+        }
+    }
+
+    public int AutoClickTimeoutSeconds { get; set; } = 180;
+
+    public bool HasAutoClick => !string.IsNullOrWhiteSpace(AutoClickWindow) && !string.IsNullOrWhiteSpace(AutoClickButton);
+
+    public string AutoClickSummary => HasAutoClick ? $"Presses “{AutoClickButton.Trim()}” in the “{AutoClickWindow.Trim()}” pop-up automatically" : "";
+
+    private void RaiseAutoClick()
+    {
+        Raise(nameof(HasAutoClick));
+        Raise(nameof(AutoClickSummary));
+    }
+
     private int _number;
     public int Number { get => _number; set => Set(ref _number, value); }
 
@@ -138,6 +177,9 @@ public sealed class StepEditVm : Observable
         WaitTimeoutSeconds = s.WaitTimeoutSeconds,
         DelayAfterSeconds = s.DelayAfterSeconds,
         IfRunning = s.IfRunning,
+        AutoClickWindow = s.AutoClickWindow,
+        AutoClickButton = s.AutoClickButton,
+        AutoClickTimeoutSeconds = s.AutoClickTimeoutSeconds,
     };
 
     public LaunchStep ToStep() => new()
@@ -152,6 +194,9 @@ public sealed class StepEditVm : Observable
         WaitTimeoutSeconds = WaitTimeoutSeconds,
         DelayAfterSeconds = DelayAfterSeconds,
         IfRunning = IfRunning,
+        AutoClickWindow = AutoClickWindow.Trim(),
+        AutoClickButton = AutoClickButton.Trim(),
+        AutoClickTimeoutSeconds = AutoClickTimeoutSeconds,
     };
 }
 

@@ -64,6 +64,7 @@ public sealed class ProfileRunner
     public async Task RunAsync(CancellationToken endRequested)
     {
         Log.Info($"── Session start: {_profile.Name}");
+        _background = CancellationTokenSource.CreateLinkedTokenSource(endRequested);
         DisplayInfo? previousPrimary = null;
         bool hasPrimaryStep = !string.IsNullOrWhiteSpace(_profile.PrimaryDisplay);
         int stepOffset = hasPrimaryStep ? 1 : 0;
@@ -125,6 +126,9 @@ public sealed class ProfileRunner
         }
         finally
         {
+            // Launch-only profiles return straight away; let their auto-click keep watching.
+            if (hasSession || cancelled) _background.Cancel();
+
             // Profiles without a session process just launch things; leave them running.
             if (hasSession || cancelled)
                 await CleanupAsync(previousPrimary);
@@ -228,8 +232,34 @@ public sealed class ProfileRunner
 
         Report(SessionPhase.Starting, message, index, state);
 
+        if (!string.IsNullOrWhiteSpace(step.AutoClickWindow) && !string.IsNullOrWhiteSpace(step.AutoClickButton))
+            _ = AutoClickAsync(index, step, quiet: alreadyRunning, _background.Token);
+
         if (step.DelayAfterSeconds > 0)
             await Task.Delay(TimeSpan.FromSeconds(step.DelayAfterSeconds), ct);
+    }
+
+    /// <summary>Runs alongside the rest of the session: waits for the pop-up and presses its button.</summary>
+    private async Task AutoClickAsync(int index, LaunchStep step, bool quiet, CancellationToken ct)
+    {
+        var window = step.AutoClickWindow.Trim();
+        var button = step.AutoClickButton.Trim();
+        var timeout = TimeSpan.FromSeconds(quiet ? 10 : Math.Clamp(step.AutoClickTimeoutSeconds, 10, 1800));
+        try
+        {
+            if (await AutoClicker.ClickAsync(window, button, timeout, ct))
+                Report(_phase, $"Pressed \"{button}\" in {window}", index, StepState.Done);
+            else if (!quiet)
+                Report(_phase, $"Couldn't press \"{button}\" in {window} — press it yourself", index, StepState.Warning);
+        }
+        catch (OperationCanceledException)
+        {
+            // session ended
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Auto-click failed", ex);
+        }
     }
 
     private async Task CleanupAsync(DisplayInfo? previousPrimary)
@@ -253,8 +283,14 @@ public sealed class ProfileRunner
         }
     }
 
+    private SessionPhase _phase = SessionPhase.Starting;
+
+    /// <summary>Cancels helpers (auto-click) when the session ends for any reason.</summary>
+    private CancellationTokenSource _background = new();
+
     private void Report(SessionPhase phase, string message, int? step = null, StepState? state = null)
     {
+        _phase = phase;
         Log.Info($"[{phase}] {message}");
         _progress.Report(new RunnerUpdate(phase, message, step, state));
     }
