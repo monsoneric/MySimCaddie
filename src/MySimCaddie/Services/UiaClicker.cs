@@ -28,4 +28,27 @@ public static class UiaClicker
 
         return false;
     }
+
+    /// <summary>Selects a tab by its name, e.g. "Connection Manager" in GSPro Connect.</summary>
+    public static bool SelectTab(IntPtr window, string tabName)
+    {
+        var root = AutomationElement.FromHandle(window);
+        var want = AutoClicker.Normalize(tabName);
+        var tabs = root.FindAll(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem));
+
+        foreach (AutomationElement t in tabs)
+        {
+            if (AutoClicker.Normalize(t.Current.Name) != want) continue;
+
+            if (t.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var sel))
+            {
+                ((SelectionItemPattern)sel).Select();
+                Log.Info($"Selected the \"{t.Current.Name}\" tab via UI Automation");
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

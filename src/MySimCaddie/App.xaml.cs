@@ -41,6 +41,7 @@ public partial class App : Application
         Log.Info($"MySimCaddie {typeof(App).Assembly.GetName().Version} starting{(LaunchedAtLogin ? " (at login)" : "")}, administrator: {(elevated ? "yes" : "no")}");
 
         AutoClicker.FallbackClick = Services.UiaClicker.Click;
+        AutoClicker.SelectTab = Services.UiaClicker.SelectTab;
 
         var config = ConfigStore.Load();
 

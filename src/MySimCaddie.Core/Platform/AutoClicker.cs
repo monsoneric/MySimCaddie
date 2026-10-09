@@ -53,6 +53,9 @@ public static class AutoClicker
     /// <summary>UI Automation fallback for buttons that aren't classic Windows controls (set by the app).</summary>
     public static Func<IntPtr, string, bool>? FallbackClick { get; set; }
 
+    /// <summary>UI Automation tab selection by name (set by the app).</summary>
+    public static Func<IntPtr, string, bool>? SelectTab { get; set; }
+
     /// <summary>"&amp;Play!" → "play"</summary>
     public static string Normalize(string? text) =>
         (text ?? "").Replace("&", "").Trim().TrimEnd('!', '.', '…').Trim().ToLowerInvariant();
@@ -229,7 +232,8 @@ public static class AutoClicker
         var deadline = DateTime.UtcNow + timeout;
         IntPtr lastWindow = IntPtr.Zero;
         DateTime? selectedSince = null, unselectedSince = null, lastSearch = null, lastConnect = null;
-        int connects = 0, searches = 0;
+        int connects = 0, searches = 0, tabTries = 0;
+        DateTime? lastTabTry = null;
         string lastState = "";
 
         Log.Info($"Auto-press: watching \"{windowTitle}\" — will press {searchText} and \"{buttonText}\" if \"{prefix}\" stays at 0");
@@ -262,6 +266,18 @@ public static class AutoClicker
             var count = ReadCount(window, prefix);
             var connect = FindChildButton(window, buttonText, requireVisible: false);
             var search = FindChildButton(window, searchText, requireVisible: false);
+
+            // Windows Forms only builds a tab's controls the first time it's shown. GSPro Connect sometimes opens
+            // on Shot Data, so the Connection Manager tab (Search, the device list, the count) doesn't exist yet.
+            if ((count is null || search == IntPtr.Zero) && tabTries < 4 && (lastTabTry is null || DateTime.UtcNow - lastTabTry >= TimeSpan.FromSeconds(3)))
+            {
+                tabTries++;
+                lastTabTry = DateTime.UtcNow;
+                OpenTab(window, ConnectionTab, tabTries);
+                await Task.Delay(1000, ct);
+                Log.Info($"Auto-press: after opening the {ConnectionTab} tab: {DescribeChildren(window, remote: true, onlyVisible: true)}");
+                continue;
+            }
             bool selected = connect != IntPtr.Zero && SiblingListsHaveSelection(connect);
             var state = $"count={(count?.ToString() ?? "?")}, connect={(connect != IntPtr.Zero ? "yes" : "no")}, search={(search != IntPtr.Zero ? "yes" : "no")}, device selected={selected}";
             if (state != lastState)
@@ -354,6 +370,42 @@ public static class AutoClicker
 
         Log.Info($"Auto-press: \"{buttonText}\" never needed pressing");
         return AutoClickResult.NotFound;
+    }
+
+    private const string ConnectionTab = "Connection Manager";
+
+    /// <summary>Shows a tab: by name through UI Automation, else by telling the tab control to move to the second tab.</summary>
+    private static void OpenTab(IntPtr window, string name, int attempt)
+    {
+        try
+        {
+            if (attempt % 2 == 1 && SelectTab?.Invoke(window, name) == true) return;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Selecting a tab via UI Automation failed", ex);
+        }
+
+        // TCM_SETCURFOCUS (unlike TCM_SETCURSEL) sends the change notifications Windows Forms listens for.
+        IntPtr tab = IntPtr.Zero;
+        Native.EnumChildWindows(window, (child, _) =>
+        {
+            var cls = new StringBuilder(128);
+            Native.GetClassName(child, cls, cls.Capacity);
+            if (!cls.ToString().Contains("SysTabControl32", StringComparison.OrdinalIgnoreCase)) return true;
+            tab = child;
+            return false;
+        }, IntPtr.Zero);
+
+        if (tab == IntPtr.Zero)
+        {
+            Log.Warn("Auto-press: no tab control found");
+            return;
+        }
+
+        Native.SendMessageTimeout(tab, Native.TCM_SETCURFOCUS, (IntPtr)1, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 1000, out _);
+        Native.SendMessageTimeout(tab, Native.TCM_GETCURSEL, IntPtr.Zero, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 500, out var cur);
+        Log.Info($"Auto-press: asked the tab control for tab 2 (now on tab {cur.ToInt64() + 1})");
     }
 
     /// <summary>Sends the button's click message to its window, which works even when its tab isn't showing.</summary>
@@ -472,7 +524,8 @@ public static class AutoClicker
         IntPtr found = IntPtr.Zero;
         Native.EnumChildWindows(dialog, (child, _) =>
         {
-            if (Normalize(GetText(child)) == want && (!requireVisible || Native.IsWindowVisible(child)) && IsButton(child))
+            if ((!requireVisible || Native.IsWindowVisible(child)) && IsButton(child)
+                && (Normalize(GetText(child)) == want || Normalize(GetRemoteText(child)) == want))
             {
                 found = child;
                 return false;
@@ -648,16 +701,17 @@ public static class AutoClicker
         return (parts.Count == 0 ? "(no matching windows)" : string.Join(" | ", parts)) + $" — processes: {running}; MySimCaddie admin: {(IsCurrentProcessElevated() ? "yes" : "no")}";
     }
 
-    private static string DescribeChildren(IntPtr dialog, bool remote = false)
+    private static string DescribeChildren(IntPtr dialog, bool remote = false, bool onlyVisible = false)
     {
         var parts = new List<string>();
         Native.EnumChildWindows(dialog, (child, _) =>
         {
             var cls = new StringBuilder(128);
             Native.GetClassName(child, cls, cls.Capacity);
+            if (onlyVisible && !Native.IsWindowVisible(child)) return true;
             var text = remote ? GetRemoteText(child) : GetText(child);
             parts.Add($"[{cls}] \"{text}\"{(Native.IsWindowVisible(child) ? "" : " (hidden)")}");
-            return parts.Count < 40;
+            return parts.Count < (remote ? 120 : 40);
         }, IntPtr.Zero);
         return parts.Count == 0 ? "(none)" : string.Join(", ", parts);
     }

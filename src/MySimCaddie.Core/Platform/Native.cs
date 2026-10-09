@@ -286,6 +286,9 @@ public static class Native
     public const uint WM_COMMAND = 0x0111;
     public const uint BM_CLICK = 0x00F5;
     public const uint WM_GETTEXT = 0x000D;
+    public const uint TCM_GETITEMCOUNT = 0x1304;
+    public const uint TCM_GETCURSEL = 0x130B;
+    public const uint TCM_SETCURFOCUS = 0x1330;
     public const uint CB_GETCOUNT = 0x0146;
     public const uint CB_GETCURSEL = 0x0147;
     public const uint SMTO_ABORTIFHUNG = 0x0002;
