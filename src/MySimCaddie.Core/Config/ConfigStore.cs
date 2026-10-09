@@ -10,7 +10,7 @@ public static class ConfigStore
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MySimCaddie");
 
     /// <summary>2 = GSPro auto-press + tile layout.</summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public static string ConfigPath => Path.Combine(DataDirectory, "config.json");
 
@@ -96,6 +96,18 @@ public static class ConfigStore
             {
                 if (cfg.Apps.TryGetValue(step.App, out var app) && GsproPreset.IsGspro(app.Path))
                     GsproPreset.ApplyConnect(step);
+            }
+        }
+
+        if (cfg.Version < 4)
+        {
+            // Once GSPro Connect has connected, move it to the 27" monitor.
+            foreach (var step in cfg.Profiles.SelectMany(p => p.Steps))
+            {
+                if (cfg.Apps.TryGetValue(step.App, out var app) && GsproPreset.IsGspro(app.Path)
+                    && step.AutoClick2Button.Equals(GsproPreset.ConnectButton, StringComparison.OrdinalIgnoreCase)
+                    && string.IsNullOrWhiteSpace(step.AutoClick2MoveTo))
+                    step.AutoClick2MoveTo = DisplayRoles.Monitor;
             }
         }
 

@@ -14,6 +14,8 @@ public enum AutoClickResult
     StillShowing,
     /// <summary>The button was there but the window never became ready (e.g. no device in GSPro Connect's list).</summary>
     NeverReady,
+    /// <summary>Nothing to press: it was already done (e.g. GSPro Connect connected by itself).</summary>
+    AlreadyDone,
 }
 
 public sealed record AutoClickOptions
@@ -291,7 +293,7 @@ public static class AutoClicker
                 Log.Info(connects == 0 && searches == 0
                     ? $"Auto-press: connected by itself — nothing to press"
                     : $"Auto-press: connected ({searches} search, {connects} connect)");
-                return connects == 0 && searches == 0 ? AutoClickResult.NotFound : AutoClickResult.Clicked;
+                return connects == 0 && searches == 0 ? AutoClickResult.AlreadyDone : AutoClickResult.Clicked;
             }
 
             if (connect == IntPtr.Zero)
@@ -414,6 +416,16 @@ public static class AutoClicker
         int id = Native.GetDlgCtrlID(button);
         var wParam = (IntPtr)((Native.BN_CLICKED << 16) | (id & 0xFFFF));
         Native.PostMessage(window, Native.WM_COMMAND, wParam, button);
+    }
+
+    /// <summary>Process name of the first visible window whose title contains the text, e.g. "GSPconnect".</summary>
+    public static string? ProcessNameOfWindow(string titleContains)
+    {
+        var hwnd = FindWindowByTitle(titleContains);
+        if (hwnd == IntPtr.Zero) return null;
+        Native.GetWindowThreadProcessId(hwnd, out var pid);
+        var name = ProcessName(pid);
+        return name == "?" ? null : name;
     }
 
     private static IntPtr FindWindowByTitle(string titleContains)

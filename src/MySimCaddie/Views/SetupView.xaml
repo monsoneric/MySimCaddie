@@ -459,6 +459,17 @@
                                                                 <TextBlock Text="in the window titled" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
                                                                 <TextBox Width="200" Height="38" FontSize="14" Text="{Binding AutoClick2Window, UpdateSourceTrigger=PropertyChanged}"
                                                                          ToolTip="Part of the window's title, e.g. GSPro x Foresight. It waits a few seconds first in case it connects by itself." Margin="0,0,12,6" />
+                                                                <TextBlock Text="then move it to" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <ComboBox Width="190" Height="38" FontSize="14" ItemsSource="{x:Static views:SetupChoices.Displays}" DisplayMemberPath="Text"
+                                                                          SelectedValuePath="Value" SelectedValue="{Binding AutoClick2MoveTo}" Margin="0,0,0,6" />
+                                                            </WrapPanel>
+                                                            <WrapPanel Margin="0,4,0,0">
+                                                                <TextBlock Text="Then click through its menu" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <TextBlock Text="{Binding ReplaySummary}" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{StaticResource MutedBrush}" />
+                                                                <Button Style="{StaticResource IconButton}" Margin="0,0,8,6" Height="38" Click="RecordClicks_Click"
+                                                                        Content="Record clicks…" FontSize="14" ToolTip="Click through the program's menu once (e.g. GSPro → Range) and it's replayed after start-up" />
+                                                                <Button Style="{StaticResource IconButton}" Margin="0,0,0,6" Height="38" Click="ClearClicks_Click"
+                                                                        Content="Clear" FontSize="14" Visibility="{Binding HasReplay, Converter={StaticResource BoolToVis}}" />
                                                             </WrapPanel>
                                                         </StackPanel>
                                                     </Expander>

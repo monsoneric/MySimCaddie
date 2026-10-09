@@ -142,10 +142,38 @@ public partial class SetupView : UserControl
         if (string.IsNullOrWhiteSpace(step.AutoClickButton)) step.AutoClickButton = GsproPreset.Button;
         if (string.IsNullOrWhiteSpace(step.AutoClick2Window)) step.AutoClick2Window = GsproPreset.ConnectWindow;
         if (string.IsNullOrWhiteSpace(step.AutoClick2Button)) step.AutoClick2Button = GsproPreset.ConnectButton;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2MoveTo)) step.AutoClick2MoveTo = MySimCaddie.Core.Config.DisplayRoles.Monitor;
         if (string.IsNullOrWhiteSpace(step.WaitForProcess)) step.WaitForProcess = "GSPro";
         step.WaitInBackground = true;
         step.Window = MySimCaddie.Core.Config.WindowMode.None; // GSPro goes full-screen on the main display itself
         step.Display = "";
+    }
+
+    private void RecordClicks_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || ((FrameworkElement)sender).DataContext is not StepEditVm step) return;
+
+        var proc = !string.IsNullOrWhiteSpace(step.ReplayProcess) ? step.ReplayProcess
+            : !string.IsNullOrWhiteSpace(step.WaitForProcess) ? step.WaitForProcess
+            : "GSPro";
+        var recorder = new ClickRecorderWindow(proc) { Owner = Window.GetWindow(this) };
+        recorder.Closed += (_, _) =>
+        {
+            if (recorder.Result is null) return;
+            step.ReplayClicks = recorder.Result;
+            step.ReplayProcess = proc;
+            _vm.Message = recorder.Result.Count == 0
+                ? "No clicks were recorded."
+                : $"Recorded {recorder.Result.Count} clicks in {proc}. Save to keep them; they replay after it starts.";
+        };
+        recorder.Show();
+    }
+
+    private void ClearClicks_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null || ((FrameworkElement)sender).DataContext is not StepEditVm step) return;
+        step.ReplayClicks = new();
+        _vm.Message = "Recorded clicks removed. Save to keep the change.";
     }
 
     private void GsproPreset_Click(object sender, RoutedEventArgs e)
@@ -155,6 +183,7 @@ public partial class SetupView : UserControl
         step.AutoClickButton = GsproPreset.Button;
         step.AutoClick2Window = GsproPreset.ConnectWindow;
         step.AutoClick2Button = GsproPreset.ConnectButton;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2MoveTo)) step.AutoClick2MoveTo = MySimCaddie.Core.Config.DisplayRoles.Monitor;
         _vm.Message = "This step will press Play! in the GSPro launcher pop-up, then Connect in GSPro Connect if it doesn't connect by itself.";
     }
 

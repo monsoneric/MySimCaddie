@@ -206,6 +206,26 @@ public sealed class LaunchStep
     public string AutoClick2Window { get; set; } = "";
 
     public string AutoClick2Button { get; set; } = "";
+
+    /// <summary>Once the second press is done (e.g. GSPro Connect has connected), move that window to this display role.</summary>
+    public string AutoClick2MoveTo { get; set; } = "";
+
+    /// <summary>
+    /// Clicks to replay in a program after start-up (and after the second press, if any), e.g. GSPro's menu buttons
+    /// to open the driving range. Recorded in Setup.
+    /// </summary>
+    public List<ReplayClick> ReplayClicks { get; set; } = new();
+
+    /// <summary>Process the clicks go to (empty = the profile's session program, e.g. GSPro).</summary>
+    public string ReplayProcess { get; set; } = "";
+}
+
+/// <summary>A recorded click: position as a fraction of the program's window, and the pause before it.</summary>
+public sealed class ReplayClick
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public int DelayMs { get; set; } = 2000;
 }
 
 public static class GsproPreset
@@ -240,6 +260,7 @@ public static class GsproPreset
     {
         if (string.IsNullOrWhiteSpace(step.AutoClick2Window)) step.AutoClick2Window = ConnectWindow;
         if (string.IsNullOrWhiteSpace(step.AutoClick2Button)) step.AutoClick2Button = ConnectButton;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2MoveTo)) step.AutoClick2MoveTo = DisplayRoles.Monitor;
     }
 }
 

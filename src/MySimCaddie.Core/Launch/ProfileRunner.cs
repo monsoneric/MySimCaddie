@@ -235,15 +235,81 @@ public sealed class ProfileRunner
         if (!string.IsNullOrWhiteSpace(step.AutoClickWindow) && !string.IsNullOrWhiteSpace(step.AutoClickButton))
             _ = AutoClickAsync(index, step, step.AutoClickWindow, step.AutoClickButton, optional: false, quiet: alreadyRunning, _background.Token);
 
-        if (!string.IsNullOrWhiteSpace(step.AutoClick2Window) && !string.IsNullOrWhiteSpace(step.AutoClick2Button))
-            _ = AutoClickAsync(index, step, step.AutoClick2Window, step.AutoClick2Button, optional: true, quiet: alreadyRunning, _background.Token);
+        bool hasSecond = !string.IsNullOrWhiteSpace(step.AutoClick2Window) && !string.IsNullOrWhiteSpace(step.AutoClick2Button);
+        if (hasSecond || (step.ReplayClicks.Count > 0 && !alreadyRunning))
+            _ = AfterStartAsync(index, step, hasSecond, alreadyRunning, _background.Token);
 
         if (step.DelayAfterSeconds > 0)
             await Task.Delay(TimeSpan.FromSeconds(step.DelayAfterSeconds), ct);
     }
 
-    /// <summary>Runs alongside the rest of the session: waits for the pop-up and presses its button.</summary>
-    private async Task AutoClickAsync(int index, LaunchStep step, string windowTitle, string buttonText, bool optional, bool quiet,
+    /// <summary>
+    /// Runs alongside the session: the second press (GSPro Connect's Connect), moving that window out of the way,
+    /// then the recorded clicks (e.g. GSPro's menu to the driving range).
+    /// </summary>
+    private async Task AfterStartAsync(int index, LaunchStep step, bool hasSecond, bool alreadyRunning, CancellationToken ct)
+    {
+        try
+        {
+            if (hasSecond)
+            {
+                var result = await AutoClickAsync(index, step, step.AutoClick2Window, step.AutoClick2Button, optional: true, quiet: alreadyRunning, ct);
+                bool connected = result is AutoClickResult.Clicked or AutoClickResult.AlreadyDone;
+
+                if (connected && !string.IsNullOrWhiteSpace(step.AutoClick2MoveTo))
+                    await MoveSecondWindowAsync(index, step, ct);
+            }
+
+            if (step.ReplayClicks.Count == 0 || alreadyRunning) return;
+
+            var proc = !string.IsNullOrWhiteSpace(step.ReplayProcess) ? step.ReplayProcess
+                : !string.IsNullOrWhiteSpace(_profile.SessionProcess) ? _profile.SessionProcess
+                : step.WaitForProcess;
+            if (string.IsNullOrWhiteSpace(proc))
+            {
+                Log.Warn("Click replay: no program to click in");
+                return;
+            }
+
+            // The game needs its window up before its menu can be clicked.
+            if (!await ProcessTools.WaitForStartAsync(proc, TimeSpan.FromSeconds(Math.Max(30, _profile.SessionStartTimeoutSeconds)), ct)) return;
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(120);
+            while (WindowPlacer.FindMainWindow(proc) == IntPtr.Zero && DateTime.UtcNow < deadline)
+                await Task.Delay(500, ct);
+
+            Report(_phase, $"Clicking through {proc}'s menu ({step.ReplayClicks.Count} clicks)…", index, StepState.Running);
+            var ok = await ClickPlayer.PlayAsync(proc, step.ReplayClicks, ct);
+            Report(_phase, ok ? $"Clicked through {proc}'s menu" : $"Couldn't finish clicking through {proc}'s menu (details are in the log)",
+                index, ok ? StepState.Done : StepState.Warning);
+        }
+        catch (OperationCanceledException)
+        {
+            // session ended
+        }
+        catch (Exception ex)
+        {
+            Log.Error("After-start actions failed", ex);
+        }
+    }
+
+    private async Task MoveSecondWindowAsync(int index, LaunchStep step, CancellationToken ct)
+    {
+        var display = DisplayService.Resolve(_cfg, step.AutoClick2MoveTo);
+        var proc = AutoClicker.ProcessNameOfWindow(step.AutoClick2Window);
+        if (display is null || proc is null)
+        {
+            Log.Warn($"Couldn't move \"{step.AutoClick2Window}\" to the {step.AutoClick2MoveTo}: " +
+                     (display is null ? "that display isn't assigned or connected" : "its window wasn't found"));
+            return;
+        }
+
+        var placed = await WindowPlacer.PlaceAsync(proc, display, WindowMode.Move, TimeSpan.FromSeconds(10), ct);
+        Log.Info(placed ? $"Moved {proc} to the {step.AutoClick2MoveTo}" : $"Couldn't move {proc} to the {step.AutoClick2MoveTo}");
+        if (placed) Report(_phase, $"Moved {proc} to the {step.AutoClick2MoveTo}", index, StepState.Done);
+    }
+
+    /// <summary>Waits for the pop-up and presses its button.</summary>
+    private async Task<AutoClickResult> AutoClickAsync(int index, LaunchStep step, string windowTitle, string buttonText, bool optional, bool quiet,
         CancellationToken ct)
     {
         var window = windowTitle.Trim();
@@ -268,26 +334,33 @@ public sealed class ProfileRunner
             if (!string.IsNullOrWhiteSpace(_profile.SessionProcess)) hints.Add(_profile.SessionProcess);
 
             var result = await AutoClicker.ClickAsync(window, button, hints, timeout, ct, options);
-            if (result == AutoClickResult.Clicked)
-                Report(_phase, $"Pressed \"{button}\" in {window}", index, StepState.Done);
-            else if (result == AutoClickResult.NeverReady)
-                Report(_phase, $"{window} never found the launch monitor, so \"{button}\" wasn't pressed — check it's on, then press Search and Connect yourself", index, StepState.Warning);
-            else if (result == AutoClickResult.StillShowing)
-                Report(_phase, $"Pressed \"{button}\" in {window} but it didn't take — check the launch monitor is on, then press it yourself", index, StepState.Warning);
-            else if (result == AutoClickResult.Blocked && !optional)
-                Report(_phase, $"Windows blocked pressing \"{button}\" because the program runs as administrator. " +
-                               "Turn on Setup → Room & apps → System → \"Run MySimCaddie as administrator\".", index, StepState.Warning);
-            else if (!quiet && !optional)
-                Report(_phase, $"Couldn't find \"{button}\" in {window} — press it yourself (details are in the log)", index, StepState.Warning);
+            ReportAutoClick(index, window, button, optional, quiet, result);
+            return result;
         }
         catch (OperationCanceledException)
         {
-            // session ended
+            return AutoClickResult.NotFound; // session ended
         }
         catch (Exception ex)
         {
             Log.Error("Auto-click failed", ex);
+            return AutoClickResult.NotFound;
         }
+    }
+
+    private void ReportAutoClick(int index, string window, string button, bool optional, bool quiet, AutoClickResult result)
+    {
+        if (result == AutoClickResult.Clicked)
+            Report(_phase, $"Pressed \"{button}\" in {window}", index, StepState.Done);
+        else if (result == AutoClickResult.NeverReady)
+            Report(_phase, $"{window} never found the launch monitor, so \"{button}\" wasn't pressed — check it's on, then press Search and Connect yourself", index, StepState.Warning);
+        else if (result == AutoClickResult.StillShowing)
+            Report(_phase, $"Pressed \"{button}\" in {window} but it didn't take — check the launch monitor is on, then press it yourself", index, StepState.Warning);
+        else if (result == AutoClickResult.Blocked && !optional)
+            Report(_phase, $"Windows blocked pressing \"{button}\" because the program runs as administrator. " +
+                           "Turn on Setup → Room & apps → System → \"Run MySimCaddie as administrator\".", index, StepState.Warning);
+        else if (result == AutoClickResult.NotFound && !quiet && !optional)
+            Report(_phase, $"Couldn't find \"{button}\" in {window} — press it yourself (details are in the log)", index, StepState.Warning);
     }
 
     private async Task CleanupAsync(DisplayInfo? previousPrimary)

@@ -70,6 +70,7 @@ public static class DefaultConfig
                     AutoClickButton = GsproPreset.Button,
                     AutoClick2Window = GsproPreset.ConnectWindow,
                     AutoClick2Button = GsproPreset.ConnectButton,
+                    AutoClick2MoveTo = DisplayRoles.Monitor,
                 },
             },
         });
@@ -91,6 +92,7 @@ public static class DefaultConfig
                     App = GsproId, WaitForProcess = "GSPro", WaitInBackground = true,
                     AutoClickWindow = GsproPreset.Window, AutoClickButton = GsproPreset.Button,
                     AutoClick2Window = GsproPreset.ConnectWindow, AutoClick2Button = GsproPreset.ConnectButton,
+                    AutoClick2MoveTo = DisplayRoles.Monitor,
                 },
             },
         });

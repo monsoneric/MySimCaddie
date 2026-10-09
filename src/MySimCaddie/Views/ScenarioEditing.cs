@@ -172,6 +172,30 @@ public sealed class StepEditVm : Observable
         }
     }
 
+    private string _autoClick2MoveTo = "";
+    public string AutoClick2MoveTo { get => _autoClick2MoveTo; set => Set(ref _autoClick2MoveTo, value ?? ""); }
+
+    private List<ReplayClick> _replayClicks = new();
+    public List<ReplayClick> ReplayClicks
+    {
+        get => _replayClicks;
+        set
+        {
+            _replayClicks = value ?? new();
+            Raise(nameof(ReplayClicks));
+            Raise(nameof(ReplaySummary));
+            Raise(nameof(HasReplay));
+        }
+    }
+
+    public string ReplayProcess { get; set; } = "";
+
+    public bool HasReplay => ReplayClicks.Count > 0;
+
+    public string ReplaySummary => ReplayClicks.Count == 0
+        ? "No clicks recorded"
+        : $"{ReplayClicks.Count} click{(ReplayClicks.Count == 1 ? "" : "s")} recorded (about {ReplayClicks.Sum(c => c.DelayMs) / 1000.0:0} s)";
+
     private bool HasFirstAutoClick => !string.IsNullOrWhiteSpace(AutoClickWindow) && !string.IsNullOrWhiteSpace(AutoClickButton);
     private bool HasSecondAutoClick => !string.IsNullOrWhiteSpace(AutoClick2Window) && !string.IsNullOrWhiteSpace(AutoClick2Button);
 
@@ -214,6 +238,9 @@ public sealed class StepEditVm : Observable
         AutoClickTimeoutSeconds = s.AutoClickTimeoutSeconds,
         AutoClick2Window = s.AutoClick2Window,
         AutoClick2Button = s.AutoClick2Button,
+        AutoClick2MoveTo = s.AutoClick2MoveTo,
+        ReplayClicks = s.ReplayClicks.Select(c => new ReplayClick { X = c.X, Y = c.Y, DelayMs = c.DelayMs }).ToList(),
+        ReplayProcess = s.ReplayProcess,
     };
 
     public LaunchStep ToStep() => new()
@@ -233,6 +260,9 @@ public sealed class StepEditVm : Observable
         AutoClickTimeoutSeconds = AutoClickTimeoutSeconds,
         AutoClick2Window = AutoClick2Window.Trim(),
         AutoClick2Button = AutoClick2Button.Trim(),
+        AutoClick2MoveTo = AutoClick2MoveTo,
+        ReplayClicks = ReplayClicks.ToList(),
+        ReplayProcess = ReplayProcess,
     };
 }
 
