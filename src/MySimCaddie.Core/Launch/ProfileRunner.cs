@@ -251,7 +251,7 @@ public sealed class ProfileRunner
         // An optional press (e.g. Connect) shows up later than the first pop-up, so it always gets the full time.
         var timeout = TimeSpan.FromSeconds(quiet && !optional ? 10 : Math.Clamp(step.AutoClickTimeoutSeconds, 10, 1800));
         var options = optional
-            ? new AutoClickOptions { Optional = true, Settle = TimeSpan.FromSeconds(6), MaxAttempts = 3 }
+            ? new AutoClickOptions { Optional = true, Settle = TimeSpan.FromSeconds(6), MaxAttempts = 3, WaitForSelection = true }
             : AutoClickOptions.Default;
         try
         {
@@ -263,6 +263,8 @@ public sealed class ProfileRunner
             var result = await AutoClicker.ClickAsync(window, button, hints, timeout, ct, options);
             if (result == AutoClickResult.Clicked)
                 Report(_phase, $"Pressed \"{button}\" in {window}", index, StepState.Done);
+            else if (result == AutoClickResult.NeverReady)
+                Report(_phase, $"{window} never found the launch monitor, so \"{button}\" wasn't pressed — check it's on, then press Search and Connect yourself", index, StepState.Warning);
             else if (result == AutoClickResult.StillShowing)
                 Report(_phase, $"Pressed \"{button}\" in {window} but it didn't take — check the launch monitor is on, then press it yourself", index, StepState.Warning);
             else if (result == AutoClickResult.Blocked && !optional)

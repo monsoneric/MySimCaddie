@@ -282,6 +282,13 @@ public static class Native
 
     public const uint WM_COMMAND = 0x0111;
     public const uint BM_CLICK = 0x00F5;
+    public const uint CB_GETCOUNT = 0x0146;
+    public const uint CB_GETCURSEL = 0x0147;
+    public const uint SMTO_ABORTIFHUNG = 0x0002;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam, uint flags, uint timeoutMs,
+        out IntPtr result);
     public const int BN_CLICKED = 0;
 
     public const uint GW_OWNER = 4;

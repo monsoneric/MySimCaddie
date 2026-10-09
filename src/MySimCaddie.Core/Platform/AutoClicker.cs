@@ -12,6 +12,8 @@ public enum AutoClickResult
     Blocked,
     /// <summary>The button was pressed but stayed on screen (e.g. Connect couldn't find the device).</summary>
     StillShowing,
+    /// <summary>The button was there but the window never became ready (e.g. no device in GSPro Connect's list).</summary>
+    NeverReady,
 }
 
 public sealed record AutoClickOptions
@@ -26,6 +28,12 @@ public sealed record AutoClickOptions
 
     /// <summary>Give up after this many presses that didn't make the button go away.</summary>
     public int MaxAttempts { get; init; } = 6;
+
+    /// <summary>
+    /// Don't press until every drop-down list in the window has something selected, e.g. GSPro Connect's device list
+    /// is empty for a few seconds while it looks for the launch monitor, and Connect then only complains.
+    /// </summary>
+    public bool WaitForSelection { get; init; }
 }
 
 /// <summary>
@@ -53,9 +61,10 @@ public static class AutoClicker
         var started = DateTime.UtcNow;
         var deadline = started + timeout;
         int attempt = 0;
-        bool loggedControls = false, loggedScan = false, loggedWaiting = false;
+        bool loggedControls = false, loggedScan = false, loggedWaiting = false, loggedNotReady = false, sawNotReady = false;
         IntPtr lastDialog = IntPtr.Zero;
         DateTime? buttonSince = null;
+        int complaints = 0;
 
         Log.Info($"Auto-press: watching for \"{buttonText}\" in a window titled \"{windowTitle}\" (or any {string.Join("/", hints)} window with that button)"
                  + (options.Optional ? " — only if it shows up" : ""));
@@ -86,6 +95,7 @@ public static class AutoClicker
                 if (FindChildButton(dialog, buttonText) == IntPtr.Zero)
                 {
                     buttonSince = null;
+                    sawNotReady = false; // e.g. it connected by itself
                     if (options.Optional)
                     {
                         // e.g. GSPro Connect already connected and switched away from the Connect tab: nothing to do.
@@ -93,8 +103,22 @@ public static class AutoClicker
                         continue;
                     }
                 }
+                else if (options.WaitForSelection && !HasSelections(dialog))
+                {
+                    buttonSince = null;
+                    sawNotReady = true;
+                    if (!loggedNotReady)
+                    {
+                        loggedNotReady = true;
+                        Log.Info($"Auto-press: \"{buttonText}\" is showing but a drop-down list is still empty; waiting for it");
+                    }
+
+                    await Task.Delay(500, ct);
+                    continue;
+                }
                 else
                 {
+                    sawNotReady = false;
                     buttonSince ??= DateTime.UtcNow;
                     if (DateTime.UtcNow - buttonSince < options.Settle)
                     {
@@ -111,14 +135,35 @@ public static class AutoClicker
 
                 if (TryClick(dialog, buttonText, attempt++, out bool accessDenied))
                 {
-                    for (int i = 0; i < 16; i++)
+                    bool complained = false;
+                    for (int i = 0; i < 16 && !complained; i++)
                     {
                         await Task.Delay(250, ct);
+                        if (DismissComplaint(dialog))
+                        {
+                            complained = true;
+                            break;
+                        }
+
                         if (!Native.IsWindow(dialog) || !Native.IsWindowVisible(dialog) || FindChildButton(dialog, buttonText) == IntPtr.Zero)
                         {
                             Log.Info($"Auto-press: pressed \"{buttonText}\" (method {attempt})");
                             return AutoClickResult.Clicked;
                         }
+                    }
+
+                    if (complained)
+                    {
+                        // The program said it wasn't ready. Same method again once it has settled again.
+                        attempt--;
+                        buttonSince = null;
+                        if (++complaints >= options.MaxAttempts)
+                        {
+                            Log.Warn($"Auto-press: \"{buttonText}\" was refused {complaints} times; giving up");
+                            return AutoClickResult.StillShowing;
+                        }
+
+                        continue;
                     }
 
                     if (attempt >= options.MaxAttempts)
@@ -147,6 +192,12 @@ public static class AutoClicker
             }
 
             await Task.Delay(500, ct);
+        }
+
+        if (sawNotReady)
+        {
+            Log.Warn($"Auto-press: \"{buttonText}\" was showing but the window never became ready; not pressed");
+            return AutoClickResult.NeverReady;
         }
 
         if (options.Optional)
@@ -213,6 +264,58 @@ public static class AutoClicker
             }
 
             return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    /// <summary>True when no visible drop-down list in the window is empty or has nothing selected.</summary>
+    private static bool HasSelections(IntPtr dialog)
+    {
+        bool ok = true;
+        Native.EnumChildWindows(dialog, (child, _) =>
+        {
+            if (!Native.IsWindowVisible(child)) return true;
+            var cls = new StringBuilder(128);
+            Native.GetClassName(child, cls, cls.Capacity);
+            if (!cls.ToString().Contains("COMBOBOX", StringComparison.OrdinalIgnoreCase)) return true;
+
+            // Window text isn't readable across programs for drop-downs, but the selected index is.
+            if (Native.SendMessageTimeout(child, Native.CB_GETCURSEL, IntPtr.Zero, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 500, out var sel) != IntPtr.Zero
+                && sel.ToInt64() < 0)
+            {
+                ok = false;
+                return false;
+            }
+
+            return true;
+        }, IntPtr.Zero);
+        return ok;
+    }
+
+    /// <summary>
+    /// If the program answered the press with a message box (e.g. "You have to select a port in the drop down list"),
+    /// log it, press its OK and return true.
+    /// </summary>
+    private static bool DismissComplaint(IntPtr dialog)
+    {
+        Native.GetWindowThreadProcessId(dialog, out var pid);
+        bool found = false;
+        Native.EnumWindows((hwnd, _) =>
+        {
+            if (hwnd == dialog || !Native.IsWindowVisible(hwnd)) return true;
+            Native.GetWindowThreadProcessId(hwnd, out var p);
+            if (p != pid) return true;
+            var cls = new StringBuilder(64);
+            Native.GetClassName(hwnd, cls, cls.Capacity);
+            if (cls.ToString() != "#32770") return true;
+
+            var ok = FindChildButton(hwnd, "OK");
+            if (ok == IntPtr.Zero) return true;
+
+            Log.Warn($"Auto-press: the program answered with a message: {DescribeChildren(hwnd)} — closing it");
+            Native.PostMessage(ok, Native.BM_CLICK, IntPtr.Zero, IntPtr.Zero);
+            found = true;
+            return true; // close every one of them
         }, IntPtr.Zero);
         return found;
     }
