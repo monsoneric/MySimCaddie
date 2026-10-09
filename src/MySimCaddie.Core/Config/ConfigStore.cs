@@ -10,7 +10,7 @@ public static class ConfigStore
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MySimCaddie");
 
     /// <summary>2 = GSPro auto-press + tile layout.</summary>
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public static string ConfigPath => Path.Combine(DataDirectory, "config.json");
 
@@ -108,6 +108,17 @@ public static class ConfigStore
                     && step.AutoClick2Button.Equals(GsproPreset.ConnectButton, StringComparison.OrdinalIgnoreCase)
                     && string.IsNullOrWhiteSpace(step.AutoClick2MoveTo))
                     step.AutoClick2MoveTo = DisplayRoles.Monitor;
+            }
+        }
+
+        if (cfg.Version < 5)
+        {
+            // ...and open Visual Data on the monitor too.
+            foreach (var step in cfg.Profiles.SelectMany(p => p.Steps))
+            {
+                if (step.AutoClick2Button.Equals(GsproPreset.ConnectButton, StringComparison.OrdinalIgnoreCase)
+                    && string.IsNullOrWhiteSpace(step.AutoClick2ThenOpen))
+                    step.AutoClick2ThenOpen = GsproPreset.VisualDataButton;
             }
         }
 

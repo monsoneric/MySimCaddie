@@ -47,7 +47,7 @@ Go to **Setup → Scenarios**. You don't need to edit any files.
   - **Wait for program**, for launchers such as GSPLauncher that hand off to GSPro
   - **Pause after**
   - **If already running**
-- **Auto-press button** (under **More options**) clicks a button in a pop-up for you. For GSPro, that's **Play!** in "GSPro Configuration". The second row, **Then, if it shows up, press**, is for a button that only sometimes appears: for GSPro, **Connect** in the "GSPro x Foresight" window, which is GSPro Connect. If the launch monitor connects by itself, nothing is pressed. **Use GSPro's Play! + Connect** fills in both rows. Once it's connected, **then move it to** puts GSPro Connect on another display (the 27" monitor by default).
+- **Auto-press button** (under **More options**) clicks a button in a pop-up for you. For GSPro, that's **Play!** in "GSPro Configuration". The second row, **Then, if it shows up, press**, is for a button that only sometimes appears: for GSPro, **Connect** in the "GSPro x Foresight" window, which is GSPro Connect. If the launch monitor connects by itself, nothing is pressed. **Use GSPro's Play! + Connect** fills in both rows. Once it's connected, **then move it to** puts GSPro Connect on another display (the 27" monitor by default), and **and press** opens **Open Visual Data** there too. MySimCaddie keeps that window on the monitor for the rest of the round.
 - **Then click through its menu** replays clicks in GSPro after it starts, for example to open the driving range. Click **Record clicks…**, get GSPro to its main menu, click through to the range, click **Done**, then **Save**. Clicks are stored as positions on GSPro's window, so record them again if GSPro's menu changes. Browsing to GSPLauncher.exe on a step sets this up automatically.
 - **The round is over when this closes** names the program that ends the round, usually the game. MySimCaddie then closes everything marked to close, plus anything ticked under **Then also close**.
 - **Start this scenario automatically** runs the scenario when MySimCaddie opens at sign-in.
@@ -88,6 +88,10 @@ Everything lives in `%APPDATA%\MySimCaddie\config.json`. Setup → **Open config
 - **`quickLinks`**: folders, files or URLs shown as buttons.
 - **`autoRunProfile`**: a profile id to start automatically when Windows signs in.
 - **Icons**: [Segoe Fluent Icons](https://learn.microsoft.com/windows/apps/design/style/segoe-fluent-icons-font) code points, for example `E7C1` (flag), `E714` (video) or `E8B7` (folder).
+
+## During a round
+
+The round screen has **Home screen**, which brings back the tiles and **Setup** without closing the game. A banner at the top shows the round is still running, and **Back to round** returns to the round screen, where **End Session** is.
 
 ## Troubleshooting
 

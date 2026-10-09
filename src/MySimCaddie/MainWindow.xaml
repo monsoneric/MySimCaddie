@@ -235,7 +235,7 @@
                 </Grid>
 
                 <!-- ── Session in progress ── -->
-                <Grid Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVis}}" Background="#C7F8FAFC">
+                <Grid Visibility="{Binding ShowSessionCard, Converter={StaticResource BoolToVis}}" Background="#C7F8FAFC">
                     <Border Width="1000" HorizontalAlignment="Center" VerticalAlignment="Center"
                             Background="{StaticResource SolidCardBrush}" CornerRadius="32" Padding="60,52"
                             Effect="{StaticResource CardShadowLifted}">
@@ -273,12 +273,39 @@
                                         <TextBlock x:Name="EndSessionText" Text="End Session" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+                                <Button Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="HideSessionCard_Click"
+                                        ToolTip="Go to the home screen and Setup while the game keeps running">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE80F;" FontSize="18" />
+                                        <TextBlock Text="Home screen" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                                 <TextBlock Text="Ctrl + Alt + H brings this screen back from anywhere" FontSize="16"
                                            Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="12,0,0,16" />
                             </StackPanel>
                         </StackPanel>
                     </Border>
                 </Grid>
+
+                <!-- ── Round still running (home screen showing) ── -->
+                <Border Visibility="{Binding ShowSessionBanner, Converter={StaticResource BoolToVis}}"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,24,0,0"
+                        Background="{StaticResource SolidCardBrush}" CornerRadius="26" Padding="26,14"
+                        BorderBrush="{DynamicResource AccentBrush}" BorderThickness="3" Effect="{StaticResource CardShadowLifted}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE768;" FontSize="22" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock FontSize="20" VerticalAlignment="Center" Margin="12,0,20,0">
+                            <Run Text="{Binding SessionTitle, Mode=OneWay}" FontWeight="SemiBold" />
+                            <Run Text="is still running" />
+                        </TextBlock>
+                        <Button Style="{StaticResource PillButton}" Click="ShowSessionCard_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" FontSize="18" />
+                                <TextBlock Text="Back to round" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
 
                 <!-- ── Setup ── -->
                 <views:SetupView x:Name="SetupPanel" Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVis}}" />

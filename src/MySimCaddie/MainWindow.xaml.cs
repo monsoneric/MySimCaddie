@@ -272,7 +272,13 @@ public partial class MainWindow : Window
 
     private async void Tile_Click(object sender, RoutedEventArgs e)
     {
-        if (_vm.IsSessionActive || ((FrameworkElement)sender).DataContext is not TileVm tile) return;
+        if (((FrameworkElement)sender).DataContext is not TileVm tile) return;
+        if (_vm.IsSessionActive)
+        {
+            ShowToast($"{_vm.SessionTitle} is still running. Use Back to round to end it first.");
+            return;
+        }
+
         await StartSessionAsync(tile.Profile);
     }
 
@@ -344,6 +350,14 @@ public partial class MainWindow : Window
             _vm.Steps[i].Detail = u.Message;
         }
     }
+
+    private void HideSessionCard_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.IsSessionCardHidden = true;
+        Log.Info("Session card hidden; round keeps running");
+    }
+
+    private void ShowSessionCard_Click(object sender, RoutedEventArgs e) => _vm.IsSessionCardHidden = false;
 
     private void EndSession_Click(object sender, RoutedEventArgs e)
     {

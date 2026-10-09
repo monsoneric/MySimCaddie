@@ -461,7 +461,10 @@
                                                                          ToolTip="Part of the window's title, e.g. GSPro x Foresight. It waits a few seconds first in case it connects by itself." Margin="0,0,12,6" />
                                                                 <TextBlock Text="then move it to" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
                                                                 <ComboBox Width="190" Height="38" FontSize="14" ItemsSource="{x:Static views:SetupChoices.Displays}" DisplayMemberPath="Text"
-                                                                          SelectedValuePath="Value" SelectedValue="{Binding AutoClick2MoveTo}" Margin="0,0,0,6" />
+                                                                          SelectedValuePath="Value" SelectedValue="{Binding AutoClick2MoveTo}" Margin="0,0,12,6" />
+                                                                <TextBlock Text="and press" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <TextBox Width="150" Height="38" FontSize="14" Text="{Binding AutoClick2ThenOpen, UpdateSourceTrigger=PropertyChanged}"
+                                                                         ToolTip="A button that opens another window, e.g. Open Visual Data. That window goes on the same display and stays there." Margin="0,0,0,6" />
                                                             </WrapPanel>
                                                             <WrapPanel Margin="0,4,0,0">
                                                                 <TextBlock Text="Then click through its menu" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />

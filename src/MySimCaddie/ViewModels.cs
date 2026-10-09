@@ -172,7 +172,37 @@ public sealed class MainVm : Observable
 
     // ── Session ──
     private bool _isSessionActive;
-    public bool IsSessionActive { get => _isSessionActive; set => Set(ref _isSessionActive, value); }
+    public bool IsSessionActive
+    {
+        get => _isSessionActive;
+        set
+        {
+            if (!Set(ref _isSessionActive, value)) return;
+            if (!value) _isSessionCardHidden = false;
+            RaiseSessionVisibility();
+        }
+    }
+
+    /// <summary>The round keeps going, but the home screen (tiles, Setup) is showing instead of the progress card.</summary>
+    private bool _isSessionCardHidden;
+    public bool IsSessionCardHidden
+    {
+        get => _isSessionCardHidden;
+        set
+        {
+            if (Set(ref _isSessionCardHidden, value)) RaiseSessionVisibility();
+        }
+    }
+
+    public bool ShowSessionCard => IsSessionActive && !IsSessionCardHidden;
+    public bool ShowSessionBanner => IsSessionActive && IsSessionCardHidden;
+
+    private void RaiseSessionVisibility()
+    {
+        Raise(nameof(IsSessionCardHidden));
+        Raise(nameof(ShowSessionCard));
+        Raise(nameof(ShowSessionBanner));
+    }
 
     private string _sessionTitle = "";
     public string SessionTitle { get => _sessionTitle; set => Set(ref _sessionTitle, value); }

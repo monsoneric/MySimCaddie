@@ -377,7 +377,7 @@ public static class AutoClicker
     private const string ConnectionTab = "Connection Manager";
 
     /// <summary>Shows a tab: by name through UI Automation, else by telling the tab control to move to the second tab.</summary>
-    private static void OpenTab(IntPtr window, string name, int attempt)
+    private static void OpenTab(IntPtr window, string name, int attempt, int fallbackIndex = 1)
     {
         try
         {
@@ -405,9 +405,9 @@ public static class AutoClicker
             return;
         }
 
-        Native.SendMessageTimeout(tab, Native.TCM_SETCURFOCUS, (IntPtr)1, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 1000, out _);
+        Native.SendMessageTimeout(tab, Native.TCM_SETCURFOCUS, (IntPtr)fallbackIndex, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 1000, out _);
         Native.SendMessageTimeout(tab, Native.TCM_GETCURSEL, IntPtr.Zero, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 500, out var cur);
-        Log.Info($"Auto-press: asked the tab control for tab 2 (now on tab {cur.ToInt64() + 1})");
+        Log.Info($"Auto-press: asked the tab control for tab {fallbackIndex + 1} (now on tab {cur.ToInt64() + 1})");
     }
 
     /// <summary>Sends the button's click message to its window, which works even when its tab isn't showing.</summary>
@@ -416,6 +416,82 @@ public static class AutoClicker
         int id = Native.GetDlgCtrlID(button);
         var wParam = (IntPtr)((Native.BN_CLICKED << 16) | (id & 0xFFFF));
         Native.PostMessage(window, Native.WM_COMMAND, wParam, button);
+    }
+
+    /// <summary>
+    /// Presses a button in a window that opens another window (e.g. "Open Visual Data" in GSPro Connect) and returns
+    /// the window it opened. If the program already has a second window open, that one is returned without pressing.
+    /// </summary>
+    public static async Task<IntPtr> PressForNewWindowAsync(string windowTitle, string buttonText, string tabName, int tabIndex,
+        CancellationToken ct)
+    {
+        var window = FindWindowByTitle(windowTitle);
+        if (window == IntPtr.Zero)
+        {
+            Log.Warn($"Auto-press: no \"{windowTitle}\" window for \"{buttonText}\"");
+            return IntPtr.Zero;
+        }
+
+        Native.GetWindowThreadProcessId(window, out var pid);
+        var before = TopLevelWindows(pid);
+        var existing = before.FirstOrDefault(h => h != window);
+        if (existing != IntPtr.Zero)
+        {
+            Log.Info($"Auto-press: {Describe(existing)} is already open; not pressing \"{buttonText}\"");
+            return existing;
+        }
+
+        // The button lives on a tab that might never have been shown (Windows Forms builds tabs on first view).
+        var button = FindChildButton(window, buttonText, requireVisible: false);
+        for (int attempt = 1; button == IntPtr.Zero && attempt <= 2; attempt++)
+        {
+            OpenTab(window, tabName, attempt, tabIndex);
+            await Task.Delay(800, ct);
+            button = FindChildButton(window, buttonText, requireVisible: false);
+        }
+
+        if (button == IntPtr.Zero)
+        {
+            Log.Warn($"Auto-press: no \"{buttonText}\" button in {Describe(window)}");
+            return IntPtr.Zero;
+        }
+
+        Press(window, button);
+        Log.Info($"Auto-press: pressed \"{buttonText}\"");
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(400, ct);
+            var opened = TopLevelWindows(pid).FirstOrDefault(h => h != window && !before.Contains(h));
+            if (opened != IntPtr.Zero)
+            {
+                await Task.Delay(500, ct); // let it finish sizing itself
+                Log.Info($"Auto-press: \"{buttonText}\" opened {Describe(opened)}");
+                return opened;
+            }
+        }
+
+        Log.Warn($"Auto-press: \"{buttonText}\" didn't open a new window");
+        return IntPtr.Zero;
+    }
+
+    /// <summary>Visible, titled top-level windows of a process (skips its message boxes).</summary>
+    private static List<IntPtr> TopLevelWindows(uint pid)
+    {
+        var list = new List<IntPtr>();
+        Native.EnumWindows((hwnd, _) =>
+        {
+            if (!Native.IsWindowVisible(hwnd)) return true;
+            Native.GetWindowThreadProcessId(hwnd, out var p);
+            if (p != pid) return true;
+            var cls = new StringBuilder(64);
+            Native.GetClassName(hwnd, cls, cls.Capacity);
+            if (cls.ToString() == "#32770") return true;
+            list.Add(hwnd);
+            return true;
+        }, IntPtr.Zero);
+        return list;
     }
 
     /// <summary>Process name of the first visible window whose title contains the text, e.g. "GSPconnect".</summary>

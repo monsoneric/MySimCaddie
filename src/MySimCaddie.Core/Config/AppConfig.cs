@@ -211,6 +211,12 @@ public sealed class LaunchStep
     public string AutoClick2MoveTo { get; set; } = "";
 
     /// <summary>
+    /// After that, press this button in the same window and put the window it opens on the same display, e.g.
+    /// "Open Visual Data" in GSPro Connect. It's kept there for the rest of the round.
+    /// </summary>
+    public string AutoClick2ThenOpen { get; set; } = "";
+
+    /// <summary>
     /// Clicks to replay in a program after start-up (and after the second press, if any), e.g. GSPro's menu buttons
     /// to open the driving range. Recorded in Setup.
     /// </summary>
@@ -236,6 +242,7 @@ public static class GsproPreset
     /// <summary>GSPro Connect's main window ("GSPro x Foresight Sports &amp; Bushnell Golf v1.14").</summary>
     public const string ConnectWindow = "GSPro x Foresight";
     public const string ConnectButton = "Connect";
+    public const string VisualDataButton = "Open Visual Data";
 
     /// <summary>GSPro Connect's Connection Manager label, e.g. "Connected Devices: 0".</summary>
     public const string ConnectStatusLabel = "Connected Devices:";
@@ -261,6 +268,7 @@ public static class GsproPreset
         if (string.IsNullOrWhiteSpace(step.AutoClick2Window)) step.AutoClick2Window = ConnectWindow;
         if (string.IsNullOrWhiteSpace(step.AutoClick2Button)) step.AutoClick2Button = ConnectButton;
         if (string.IsNullOrWhiteSpace(step.AutoClick2MoveTo)) step.AutoClick2MoveTo = DisplayRoles.Monitor;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2ThenOpen)) step.AutoClick2ThenOpen = VisualDataButton;
     }
 }
 

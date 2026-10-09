@@ -143,6 +143,7 @@ public partial class SetupView : UserControl
         if (string.IsNullOrWhiteSpace(step.AutoClick2Window)) step.AutoClick2Window = GsproPreset.ConnectWindow;
         if (string.IsNullOrWhiteSpace(step.AutoClick2Button)) step.AutoClick2Button = GsproPreset.ConnectButton;
         if (string.IsNullOrWhiteSpace(step.AutoClick2MoveTo)) step.AutoClick2MoveTo = MySimCaddie.Core.Config.DisplayRoles.Monitor;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2ThenOpen)) step.AutoClick2ThenOpen = GsproPreset.VisualDataButton;
         if (string.IsNullOrWhiteSpace(step.WaitForProcess)) step.WaitForProcess = "GSPro";
         step.WaitInBackground = true;
         step.Window = MySimCaddie.Core.Config.WindowMode.None; // GSPro goes full-screen on the main display itself
@@ -184,6 +185,7 @@ public partial class SetupView : UserControl
         step.AutoClick2Window = GsproPreset.ConnectWindow;
         step.AutoClick2Button = GsproPreset.ConnectButton;
         if (string.IsNullOrWhiteSpace(step.AutoClick2MoveTo)) step.AutoClick2MoveTo = MySimCaddie.Core.Config.DisplayRoles.Monitor;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2ThenOpen)) step.AutoClick2ThenOpen = GsproPreset.VisualDataButton;
         _vm.Message = "This step will press Play! in the GSPro launcher pop-up, then Connect in GSPro Connect if it doesn't connect by itself.";
     }
 

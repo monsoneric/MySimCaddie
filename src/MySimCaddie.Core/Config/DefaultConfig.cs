@@ -71,6 +71,7 @@ public static class DefaultConfig
                     AutoClick2Window = GsproPreset.ConnectWindow,
                     AutoClick2Button = GsproPreset.ConnectButton,
                     AutoClick2MoveTo = DisplayRoles.Monitor,
+                    AutoClick2ThenOpen = GsproPreset.VisualDataButton,
                 },
             },
         });
@@ -93,6 +94,7 @@ public static class DefaultConfig
                     AutoClickWindow = GsproPreset.Window, AutoClickButton = GsproPreset.Button,
                     AutoClick2Window = GsproPreset.ConnectWindow, AutoClick2Button = GsproPreset.ConnectButton,
                     AutoClick2MoveTo = DisplayRoles.Monitor,
+                    AutoClick2ThenOpen = GsproPreset.VisualDataButton,
                 },
             },
         });

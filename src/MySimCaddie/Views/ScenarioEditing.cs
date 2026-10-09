@@ -175,6 +175,9 @@ public sealed class StepEditVm : Observable
     private string _autoClick2MoveTo = "";
     public string AutoClick2MoveTo { get => _autoClick2MoveTo; set => Set(ref _autoClick2MoveTo, value ?? ""); }
 
+    private string _autoClick2ThenOpen = "";
+    public string AutoClick2ThenOpen { get => _autoClick2ThenOpen; set => Set(ref _autoClick2ThenOpen, value ?? ""); }
+
     private List<ReplayClick> _replayClicks = new();
     public List<ReplayClick> ReplayClicks
     {
@@ -239,6 +242,7 @@ public sealed class StepEditVm : Observable
         AutoClick2Window = s.AutoClick2Window,
         AutoClick2Button = s.AutoClick2Button,
         AutoClick2MoveTo = s.AutoClick2MoveTo,
+        AutoClick2ThenOpen = s.AutoClick2ThenOpen,
         ReplayClicks = s.ReplayClicks.Select(c => new ReplayClick { X = c.X, Y = c.Y, DelayMs = c.DelayMs }).ToList(),
         ReplayProcess = s.ReplayProcess,
     };
@@ -261,6 +265,7 @@ public sealed class StepEditVm : Observable
         AutoClick2Window = AutoClick2Window.Trim(),
         AutoClick2Button = AutoClick2Button.Trim(),
         AutoClick2MoveTo = AutoClick2MoveTo,
+        AutoClick2ThenOpen = AutoClick2ThenOpen.Trim(),
         ReplayClicks = ReplayClicks.ToList(),
         ReplayProcess = ReplayProcess,
     };

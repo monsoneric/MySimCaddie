@@ -258,6 +258,9 @@ public sealed class ProfileRunner
 
                 if (connected && !string.IsNullOrWhiteSpace(step.AutoClick2MoveTo))
                     await MoveSecondWindowAsync(index, step, ct);
+
+                if (connected && !string.IsNullOrWhiteSpace(step.AutoClick2ThenOpen))
+                    await OpenThirdWindowAsync(index, step, ct);
             }
 
             if (step.ReplayClicks.Count == 0 || alreadyRunning) return;
@@ -306,6 +309,58 @@ public sealed class ProfileRunner
         var placed = await WindowPlacer.PlaceAsync(proc, display, WindowMode.Move, TimeSpan.FromSeconds(10), ct);
         Log.Info(placed ? $"Moved {proc} to the {step.AutoClick2MoveTo}" : $"Couldn't move {proc} to the {step.AutoClick2MoveTo}");
         if (placed) Report(_phase, $"Moved {proc} to the {step.AutoClick2MoveTo}", index, StepState.Done);
+    }
+
+    /// <summary>Presses e.g. "Open Visual Data", puts the window it opens on the display, and keeps it there.</summary>
+    private async Task OpenThirdWindowAsync(int index, LaunchStep step, CancellationToken ct)
+    {
+        var button = step.AutoClick2ThenOpen.Trim();
+        // GSPro Connect: Open Visual Data is on the first tab, Shot Data.
+        var opened = await AutoClicker.PressForNewWindowAsync(step.AutoClick2Window, button, "Shot Data", 0, ct);
+        if (opened == IntPtr.Zero)
+        {
+            Report(_phase, $"Couldn't open \"{button}\" (details are in the log)", index, StepState.Warning);
+            return;
+        }
+
+        var role = string.IsNullOrWhiteSpace(step.AutoClick2MoveTo) ? "" : step.AutoClick2MoveTo;
+        if (role.Length == 0)
+        {
+            Report(_phase, $"Opened {button}", index, StepState.Done);
+            return;
+        }
+
+        var display = DisplayService.Resolve(_cfg, role);
+        if (display is null)
+        {
+            Log.Warn($"Couldn't move {button} to the {role}: that display isn't assigned or connected");
+            return;
+        }
+
+        WindowPlacer.Place(opened, display, WindowMode.Move);
+        Report(_phase, $"Opened {button} on the {role}", index, StepState.Done);
+        Log.Info($"Moved \"{button}\" window to the {role}");
+
+        // Keep it there for the round: put it back if it wanders off.
+        _ = KeepOnDisplayAsync(opened, display, button, ct);
+    }
+
+    private static async Task KeepOnDisplayAsync(IntPtr hwnd, DisplayInfo display, string name, CancellationToken ct)
+    {
+        try
+        {
+            while (Native.IsWindow(hwnd))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(4), ct);
+                if (!Native.IsWindowVisible(hwnd) || Native.IsIconic(hwnd) || WindowPlacer.IsOnDisplay(hwnd, display)) continue;
+                Log.Info($"\"{name}\" window left its display; moving it back");
+                WindowPlacer.Place(hwnd, display, WindowMode.Move);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // round over
+        }
     }
 
     /// <summary>Waits for the pop-up and presses its button.</summary>
