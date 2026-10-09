@@ -132,7 +132,7 @@ public partial class SetupView : UserControl
         if (GsproPreset.IsGspro(row.Path))
         {
             ApplyGsproPreset(step);
-            _vm.Message = "GSPro picked: it will press Play! in the launcher pop-up and wait for GSPro to open.";
+            _vm.Message = "GSPro picked: it will press Play! in the launcher pop-up, press Connect in GSPro Connect if needed, and wait for GSPro to open.";
         }
     }
 
@@ -140,6 +140,8 @@ public partial class SetupView : UserControl
     {
         if (string.IsNullOrWhiteSpace(step.AutoClickWindow)) step.AutoClickWindow = GsproPreset.Window;
         if (string.IsNullOrWhiteSpace(step.AutoClickButton)) step.AutoClickButton = GsproPreset.Button;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2Window)) step.AutoClick2Window = GsproPreset.ConnectWindow;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2Button)) step.AutoClick2Button = GsproPreset.ConnectButton;
         if (string.IsNullOrWhiteSpace(step.WaitForProcess)) step.WaitForProcess = "GSPro";
         step.WaitInBackground = true;
         step.Window = MySimCaddie.Core.Config.WindowMode.None; // GSPro goes full-screen on the main display itself
@@ -151,7 +153,9 @@ public partial class SetupView : UserControl
         if (_vm is null || ((FrameworkElement)sender).DataContext is not StepEditVm step) return;
         step.AutoClickWindow = GsproPreset.Window;
         step.AutoClickButton = GsproPreset.Button;
-        _vm.Message = "This step will press Play! in the GSPro launcher pop-up.";
+        step.AutoClick2Window = GsproPreset.ConnectWindow;
+        step.AutoClick2Button = GsproPreset.ConnectButton;
+        _vm.Message = "This step will press Play! in the GSPro launcher pop-up, then Connect in GSPro Connect if it doesn't connect by itself.";
     }
 
     /// <summary>Show a file picker for an .exe. Returns the existing app with that path, a newly added app, or null.</summary>

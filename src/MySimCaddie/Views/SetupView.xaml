@@ -450,7 +450,15 @@
                                                                 <TextBox Width="200" Height="38" FontSize="14" Text="{Binding AutoClickWindow, UpdateSourceTrigger=PropertyChanged}"
                                                                          ToolTip="Part of the pop-up window's title, e.g. GSPro Configuration" Margin="0,0,12,6" />
                                                                 <Button Style="{StaticResource IconButton}" Margin="0,0,0,6" Height="38" Click="GsproPreset_Click"
-                                                                        Content="Use GSPro's Play!" FontSize="14" ToolTip="Fill in GSPro's launcher pop-up" />
+                                                                        Content="Use GSPro's Play! + Connect" FontSize="14" ToolTip="Fill in GSPro's launcher pop-up and GSPro Connect's Connect button" />
+                                                            </WrapPanel>
+                                                            <WrapPanel Margin="0,4,0,0">
+                                                                <TextBlock Text="Then, if it shows up, press" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <TextBox Width="110" Height="38" FontSize="14" Text="{Binding AutoClick2Button, UpdateSourceTrigger=PropertyChanged}"
+                                                                         ToolTip="Button text, e.g. Connect" Margin="0,0,8,6" />
+                                                                <TextBlock Text="in the window titled" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkBrush}" />
+                                                                <TextBox Width="200" Height="38" FontSize="14" Text="{Binding AutoClick2Window, UpdateSourceTrigger=PropertyChanged}"
+                                                                         ToolTip="Part of the window's title, e.g. GSPro x Foresight. It waits a few seconds first in case it connects by itself." Margin="0,0,12,6" />
                                                             </WrapPanel>
                                                         </StackPanel>
                                                     </Expander>

@@ -68,6 +68,8 @@ public static class DefaultConfig
                     WaitInBackground = true,
                     AutoClickWindow = GsproPreset.Window,
                     AutoClickButton = GsproPreset.Button,
+                    AutoClick2Window = GsproPreset.ConnectWindow,
+                    AutoClick2Button = GsproPreset.ConnectButton,
                 },
             },
         });
@@ -88,6 +90,7 @@ public static class DefaultConfig
                 {
                     App = GsproId, WaitForProcess = "GSPro", WaitInBackground = true,
                     AutoClickWindow = GsproPreset.Window, AutoClickButton = GsproPreset.Button,
+                    AutoClick2Window = GsproPreset.ConnectWindow, AutoClick2Button = GsproPreset.ConnectButton,
                 },
             },
         });

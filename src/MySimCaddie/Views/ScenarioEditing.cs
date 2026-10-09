@@ -152,9 +152,41 @@ public sealed class StepEditVm : Observable
 
     public int AutoClickTimeoutSeconds { get; set; } = 180;
 
-    public bool HasAutoClick => !string.IsNullOrWhiteSpace(AutoClickWindow) && !string.IsNullOrWhiteSpace(AutoClickButton);
+    private string _autoClick2Window = "";
+    public string AutoClick2Window
+    {
+        get => _autoClick2Window;
+        set
+        {
+            if (Set(ref _autoClick2Window, value ?? "")) RaiseAutoClick();
+        }
+    }
 
-    public string AutoClickSummary => HasAutoClick ? $"Presses “{AutoClickButton.Trim()}” in the “{AutoClickWindow.Trim()}” pop-up automatically" : "";
+    private string _autoClick2Button = "";
+    public string AutoClick2Button
+    {
+        get => _autoClick2Button;
+        set
+        {
+            if (Set(ref _autoClick2Button, value ?? "")) RaiseAutoClick();
+        }
+    }
+
+    private bool HasFirstAutoClick => !string.IsNullOrWhiteSpace(AutoClickWindow) && !string.IsNullOrWhiteSpace(AutoClickButton);
+    private bool HasSecondAutoClick => !string.IsNullOrWhiteSpace(AutoClick2Window) && !string.IsNullOrWhiteSpace(AutoClick2Button);
+
+    public bool HasAutoClick => HasFirstAutoClick || HasSecondAutoClick;
+
+    public string AutoClickSummary
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (HasFirstAutoClick) parts.Add($"Presses “{AutoClickButton.Trim()}” in the “{AutoClickWindow.Trim()}” pop-up automatically");
+            if (HasSecondAutoClick) parts.Add($"{(parts.Count > 0 ? "then" : "Presses")} “{AutoClick2Button.Trim()}” in “{AutoClick2Window.Trim()}” if it shows up");
+            return string.Join(", ", parts);
+        }
+    }
 
     private void RaiseAutoClick()
     {
@@ -180,6 +212,8 @@ public sealed class StepEditVm : Observable
         AutoClickWindow = s.AutoClickWindow,
         AutoClickButton = s.AutoClickButton,
         AutoClickTimeoutSeconds = s.AutoClickTimeoutSeconds,
+        AutoClick2Window = s.AutoClick2Window,
+        AutoClick2Button = s.AutoClick2Button,
     };
 
     public LaunchStep ToStep() => new()
@@ -197,6 +231,8 @@ public sealed class StepEditVm : Observable
         AutoClickWindow = AutoClickWindow.Trim(),
         AutoClickButton = AutoClickButton.Trim(),
         AutoClickTimeoutSeconds = AutoClickTimeoutSeconds,
+        AutoClick2Window = AutoClick2Window.Trim(),
+        AutoClick2Button = AutoClick2Button.Trim(),
     };
 }
 

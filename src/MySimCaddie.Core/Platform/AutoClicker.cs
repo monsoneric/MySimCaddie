@@ -10,6 +10,22 @@ public enum AutoClickResult
     NotFound,
     /// <summary>The pop-up belongs to a program running as administrator and MySimCaddie isn't, so Windows blocks the click.</summary>
     Blocked,
+    /// <summary>The button was pressed but stayed on screen (e.g. Connect couldn't find the device).</summary>
+    StillShowing,
+}
+
+public sealed record AutoClickOptions
+{
+    public static readonly AutoClickOptions Default = new();
+
+    /// <summary>How long the button must stay on screen before it's pressed.</summary>
+    public TimeSpan Settle { get; init; } = TimeSpan.FromMilliseconds(800);
+
+    /// <summary>Press only if the button shows up; don't treat "never appeared" as a problem.</summary>
+    public bool Optional { get; init; }
+
+    /// <summary>Give up after this many presses that didn't make the button go away.</summary>
+    public int MaxAttempts { get; init; } = 6;
 }
 
 /// <summary>
@@ -27,8 +43,9 @@ public static class AutoClicker
         (text ?? "").Replace("&", "").Trim().TrimEnd('!', '.', '…').Trim().ToLowerInvariant();
 
     public static async Task<AutoClickResult> ClickAsync(string windowTitle, string buttonText, IEnumerable<string> processHints,
-        TimeSpan timeout, CancellationToken ct)
+        TimeSpan timeout, CancellationToken ct, AutoClickOptions? options = null)
     {
+        options ??= AutoClickOptions.Default;
         var hints = processHints.Where(h => !string.IsNullOrWhiteSpace(h))
             .Select(h => h.Trim().Replace(".exe", "", StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -36,10 +53,12 @@ public static class AutoClicker
         var started = DateTime.UtcNow;
         var deadline = started + timeout;
         int attempt = 0;
-        bool loggedControls = false, loggedScan = false;
+        bool loggedControls = false, loggedScan = false, loggedWaiting = false;
         IntPtr lastDialog = IntPtr.Zero;
+        DateTime? buttonSince = null;
 
-        Log.Info($"Auto-press: watching for \"{buttonText}\" in a window titled \"{windowTitle}\" (or any {string.Join("/", hints)} window with that button)");
+        Log.Info($"Auto-press: watching for \"{buttonText}\" in a window titled \"{windowTitle}\" (or any {string.Join("/", hints)} window with that button)"
+                 + (options.Optional ? " — only if it shows up" : ""));
 
         while (DateTime.UtcNow < deadline)
         {
@@ -52,6 +71,7 @@ public static class AutoClicker
                 {
                     lastDialog = dialog;
                     attempt = 0;
+                    buttonSince = null;
                     Log.Info($"Auto-press: found {Describe(dialog)}");
 
                     if (IsBlockedByElevation(dialog))
@@ -59,36 +79,68 @@ public static class AutoClicker
                         Log.Warn("Auto-press: that window belongs to a program running as administrator and MySimCaddie isn't, so Windows blocks the click");
                         return AutoClickResult.Blocked;
                     }
+                }
 
-                    await Task.Delay(800, ct); // let it finish drawing and enabling its buttons
+                // The button has to stay on screen for a moment first: it lets pop-ups finish drawing, and gives
+                // programs like GSPro Connect time to connect by themselves (the Connect button then disappears).
+                if (FindChildButton(dialog, buttonText) == IntPtr.Zero)
+                {
+                    buttonSince = null;
+                    if (options.Optional)
+                    {
+                        // e.g. GSPro Connect already connected and switched away from the Connect tab: nothing to do.
+                        await Task.Delay(500, ct);
+                        continue;
+                    }
+                }
+                else
+                {
+                    buttonSince ??= DateTime.UtcNow;
+                    if (DateTime.UtcNow - buttonSince < options.Settle)
+                    {
+                        if (!loggedWaiting && options.Settle > TimeSpan.FromSeconds(1))
+                        {
+                            loggedWaiting = true;
+                            Log.Info($"Auto-press: \"{buttonText}\" is showing; giving it {options.Settle.TotalSeconds:0}s before pressing");
+                        }
+
+                        await Task.Delay(250, ct);
+                        continue;
+                    }
                 }
 
                 if (TryClick(dialog, buttonText, attempt++, out bool accessDenied))
                 {
-                    for (int i = 0; i < 12; i++)
+                    for (int i = 0; i < 16; i++)
                     {
                         await Task.Delay(250, ct);
-                        if (!Native.IsWindow(dialog) || !Native.IsWindowVisible(dialog))
+                        if (!Native.IsWindow(dialog) || !Native.IsWindowVisible(dialog) || FindChildButton(dialog, buttonText) == IntPtr.Zero)
                         {
                             Log.Info($"Auto-press: pressed \"{buttonText}\" (method {attempt})");
                             return AutoClickResult.Clicked;
                         }
                     }
 
-                    Log.Warn($"Auto-press: window still open after method {attempt}; trying another way");
+                    if (attempt >= options.MaxAttempts)
+                    {
+                        Log.Warn($"Auto-press: pressed \"{buttonText}\" {attempt} times but it's still showing; giving up");
+                        return AutoClickResult.StillShowing;
+                    }
+
+                    Log.Warn($"Auto-press: \"{buttonText}\" still showing after method {attempt}; trying another way");
                 }
                 else if (accessDenied)
                 {
                     Log.Warn("Auto-press: Windows refused the click (access denied — the program is probably running as administrator)");
                     return AutoClickResult.Blocked;
                 }
-                else if (!loggedControls)
+                else if (!loggedControls && !options.Optional)
                 {
                     loggedControls = true;
                     Log.Warn($"Auto-press: no \"{buttonText}\" button found. Controls: {DescribeChildren(dialog)}");
                 }
             }
-            else if (!loggedScan && DateTime.UtcNow - started > TimeSpan.FromSeconds(20))
+            else if (!loggedScan && !options.Optional && DateTime.UtcNow - started > TimeSpan.FromSeconds(20))
             {
                 loggedScan = true;
                 Log.Warn($"Auto-press: nothing matched after 20s. Windows on screen: {ScanForDiagnostics(hints)}");
@@ -97,7 +149,10 @@ public static class AutoClicker
             await Task.Delay(500, ct);
         }
 
-        if (!loggedScan) Log.Warn($"Auto-press: gave up. Windows on screen: {ScanForDiagnostics(hints)}");
+        if (options.Optional)
+            Log.Info($"Auto-press: \"{buttonText}\" never needed pressing");
+        else if (!loggedScan)
+            Log.Warn($"Auto-press: gave up. Windows on screen: {ScanForDiagnostics(hints)}");
         return AutoClickResult.NotFound;
     }
 

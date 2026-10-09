@@ -10,7 +10,7 @@ public static class ConfigStore
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MySimCaddie");
 
     /// <summary>2 = GSPro auto-press + tile layout.</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public static string ConfigPath => Path.Combine(DataDirectory, "config.json");
 
@@ -87,6 +87,16 @@ public static class ConfigStore
             // The logo now has its own uncovered area, so the old watermark strength is too faint.
             if (Math.Abs(cfg.BackgroundLogoOpacity - 0.22) < 0.001) cfg.BackgroundLogoOpacity = 0.9;
             if (string.IsNullOrWhiteSpace(cfg.TileLayout)) cfg.TileLayout = TileLayouts.Left;
+        }
+
+        if (cfg.Version < 3)
+        {
+            // GSPro steps now also press Connect in GSPro Connect if it doesn't connect by itself.
+            foreach (var step in cfg.Profiles.SelectMany(p => p.Steps))
+            {
+                if (cfg.Apps.TryGetValue(step.App, out var app) && GsproPreset.IsGspro(app.Path))
+                    GsproPreset.ApplyConnect(step);
+            }
         }
 
         Log.Info($"Config upgraded from v{cfg.Version} to v{CurrentVersion}");

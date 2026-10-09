@@ -34,7 +34,7 @@ A full-screen home screen for **JuiceBoxGuy's Hack Shack**, the golf simulator r
 
 1. Makes the projector the main display.
 2. Starts SimTuner, moves it to the 27" monitor and maximizes it.
-3. Starts the GSPro launcher and presses **Play!** in its "GSPro Configuration" pop-up for you.
+3. Starts the GSPro launcher and presses **Play!** in its "GSPro Configuration" pop-up for you. If GSPro Connect stops on its **Connection Manager** tab instead of connecting by itself, it waits 6 seconds and then presses **Connect**.
 4. Waits until `GSPro.exe` is running.
 5. When you close GSPro, it closes SimTuner and GSPro Connect, which is the Bushnell Launch Pro link.
 
@@ -47,7 +47,7 @@ Go to **Setup → Scenarios**. You don't need to edit any files.
   - **Wait for program**, for launchers such as GSPLauncher that hand off to GSPro
   - **Pause after**
   - **If already running**
-- **Auto-press button** (under **More options**) clicks a button in a pop-up for you. For GSPro, that's **Play!** in "GSPro Configuration", and **Use GSPro's Play!** fills it in. Browsing to GSPLauncher.exe on a step sets this up automatically.
+- **Auto-press button** (under **More options**) clicks a button in a pop-up for you. For GSPro, that's **Play!** in "GSPro Configuration". The second row, **Then, if it shows up, press**, is for a button that only sometimes appears: for GSPro, **Connect** in the "GSPro x Foresight" window, which is GSPro Connect. If the launch monitor connects by itself, nothing is pressed. **Use GSPro's Play! + Connect** fills in both rows. Browsing to GSPLauncher.exe on a step sets this up automatically.
 - **The round is over when this closes** names the program that ends the round, usually the game. MySimCaddie then closes everything marked to close, plus anything ticked under **Then also close**.
 - **Start this scenario automatically** runs the scenario when MySimCaddie opens at sign-in.
 - Use **Up/Down** to reorder tiles, **Duplicate** to copy one as a starting point, and **Delete** (tap twice) to remove one.
@@ -56,7 +56,7 @@ To add a program such as E6 Connect, FSX or ShotForge, go to **Setup → Room & 
 
 ## GSPro "Run as admin"
 
-If GSPro is set to **Run as admin**, Windows won't let a normal program press its buttons. Turn on **Setup → Room & apps → System → Run MySimCaddie as administrator**. Windows asks for permission once. After that, MySimCaddie starts as administrator through a Task Scheduler task named **MySimCaddie**, with no prompt at sign-in, and can press **Play!** for you. Apps it launches inherit administrator rights, so the per-app **Run as admin** prompts go away too.
+If GSPro is set to **Run as admin**, Windows won't let a normal program press its buttons. Turn on **Setup → Room & apps → System → Run MySimCaddie as administrator**. Windows asks for permission once. After that, MySimCaddie starts as administrator through a Task Scheduler task named **MySimCaddie**, with no prompt at sign-in, and can press **Play!** and **Connect** for you. Apps it launches inherit administrator rights, so the per-app **Run as admin** prompts go away too.
 
 ## Home screen layout
 

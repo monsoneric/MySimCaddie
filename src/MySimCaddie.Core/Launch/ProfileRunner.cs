@@ -233,32 +233,42 @@ public sealed class ProfileRunner
         Report(SessionPhase.Starting, message, index, state);
 
         if (!string.IsNullOrWhiteSpace(step.AutoClickWindow) && !string.IsNullOrWhiteSpace(step.AutoClickButton))
-            _ = AutoClickAsync(index, step, quiet: alreadyRunning, _background.Token);
+            _ = AutoClickAsync(index, step, step.AutoClickWindow, step.AutoClickButton, optional: false, quiet: alreadyRunning, _background.Token);
+
+        if (!string.IsNullOrWhiteSpace(step.AutoClick2Window) && !string.IsNullOrWhiteSpace(step.AutoClick2Button))
+            _ = AutoClickAsync(index, step, step.AutoClick2Window, step.AutoClick2Button, optional: true, quiet: alreadyRunning, _background.Token);
 
         if (step.DelayAfterSeconds > 0)
             await Task.Delay(TimeSpan.FromSeconds(step.DelayAfterSeconds), ct);
     }
 
     /// <summary>Runs alongside the rest of the session: waits for the pop-up and presses its button.</summary>
-    private async Task AutoClickAsync(int index, LaunchStep step, bool quiet, CancellationToken ct)
+    private async Task AutoClickAsync(int index, LaunchStep step, string windowTitle, string buttonText, bool optional, bool quiet,
+        CancellationToken ct)
     {
-        var window = step.AutoClickWindow.Trim();
-        var button = step.AutoClickButton.Trim();
-        var timeout = TimeSpan.FromSeconds(quiet ? 10 : Math.Clamp(step.AutoClickTimeoutSeconds, 10, 1800));
+        var window = windowTitle.Trim();
+        var button = buttonText.Trim();
+        // An optional press (e.g. Connect) shows up later than the first pop-up, so it always gets the full time.
+        var timeout = TimeSpan.FromSeconds(quiet && !optional ? 10 : Math.Clamp(step.AutoClickTimeoutSeconds, 10, 1800));
+        var options = optional
+            ? new AutoClickOptions { Optional = true, Settle = TimeSpan.FromSeconds(6), MaxAttempts = 3 }
+            : AutoClickOptions.Default;
         try
         {
             // Pop-ups like GSPro's come from the launcher or the game it opens.
-            var hints = new List<string> { step.WaitForProcess, "GSPro", "GSPLauncher" };
+            var hints = new List<string> { step.WaitForProcess, "GSPro", "GSPLauncher", "GSPconnect" };
             if (_cfg.Apps.TryGetValue(step.App, out var app)) hints.Add(app.EffectiveProcessName);
             if (!string.IsNullOrWhiteSpace(_profile.SessionProcess)) hints.Add(_profile.SessionProcess);
 
-            var result = await AutoClicker.ClickAsync(window, button, hints, timeout, ct);
+            var result = await AutoClicker.ClickAsync(window, button, hints, timeout, ct, options);
             if (result == AutoClickResult.Clicked)
                 Report(_phase, $"Pressed \"{button}\" in {window}", index, StepState.Done);
-            else if (result == AutoClickResult.Blocked)
+            else if (result == AutoClickResult.StillShowing)
+                Report(_phase, $"Pressed \"{button}\" in {window} but it didn't take — check the launch monitor is on, then press it yourself", index, StepState.Warning);
+            else if (result == AutoClickResult.Blocked && !optional)
                 Report(_phase, $"Windows blocked pressing \"{button}\" because the program runs as administrator. " +
                                "Turn on Setup → Room & apps → System → \"Run MySimCaddie as administrator\".", index, StepState.Warning);
-            else if (!quiet)
+            else if (!quiet && !optional)
                 Report(_phase, $"Couldn't find \"{button}\" in {window} — press it yourself (details are in the log)", index, StepState.Warning);
         }
         catch (OperationCanceledException)

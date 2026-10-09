@@ -16,7 +16,7 @@ public static class UiaClicker
 
         foreach (AutomationElement b in buttons)
         {
-            if (AutoClicker.Normalize(b.Current.Name) != want || !b.Current.IsEnabled) continue;
+            if (AutoClicker.Normalize(b.Current.Name) != want || !b.Current.IsEnabled || b.Current.IsOffscreen) continue;
 
             if (b.TryGetCurrentPattern(InvokePattern.Pattern, out var pattern))
             {

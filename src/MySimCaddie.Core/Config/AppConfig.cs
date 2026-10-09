@@ -198,12 +198,24 @@ public sealed class LaunchStep
     public string AutoClickButton { get; set; } = "";
 
     public int AutoClickTimeoutSeconds { get; set; } = 180;
+
+    /// <summary>
+    /// A second button to press if it shows up, e.g. "Connect" in GSPro Connect's Connection Manager.
+    /// Optional: if the button never appears (the device connected by itself), nothing happens.
+    /// </summary>
+    public string AutoClick2Window { get; set; } = "";
+
+    public string AutoClick2Button { get; set; } = "";
 }
 
 public static class GsproPreset
 {
     public const string Window = "GSPro Configuration";
     public const string Button = "Play!";
+
+    /// <summary>GSPro Connect's main window ("GSPro x Foresight Sports &amp; Bushnell Golf v1.14").</summary>
+    public const string ConnectWindow = "GSPro x Foresight";
+    public const string ConnectButton = "Connect";
 
     public static bool IsGspro(string? exePath)
     {
@@ -217,6 +229,14 @@ public static class GsproPreset
     {
         if (string.IsNullOrWhiteSpace(step.AutoClickWindow)) step.AutoClickWindow = Window;
         if (string.IsNullOrWhiteSpace(step.AutoClickButton)) step.AutoClickButton = Button;
+        ApplyConnect(step);
+    }
+
+    /// <summary>Also press Connect in GSPro Connect when it stops on the Connection Manager tab.</summary>
+    public static void ApplyConnect(LaunchStep step)
+    {
+        if (string.IsNullOrWhiteSpace(step.AutoClick2Window)) step.AutoClick2Window = ConnectWindow;
+        if (string.IsNullOrWhiteSpace(step.AutoClick2Button)) step.AutoClick2Button = ConnectButton;
     }
 }
 
