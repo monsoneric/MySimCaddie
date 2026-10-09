@@ -259,8 +259,26 @@ public static class Native
     [DllImport("user32.dll")]
     public static extern int GetDlgCtrlID(IntPtr hwnd);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    // ───────────── Process elevation ─────────────
+
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    public const uint TOKEN_QUERY = 0x0008;
+    public const int TokenElevation = 20;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint access, bool inherit, uint processId);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool GetTokenInformation(IntPtr token, int infoClass, out int info, int length, out int returnLength);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr handle);
 
     public const uint WM_COMMAND = 0x0111;
     public const uint BM_CLICK = 0x00F5;

@@ -247,10 +247,19 @@ public sealed class ProfileRunner
         var timeout = TimeSpan.FromSeconds(quiet ? 10 : Math.Clamp(step.AutoClickTimeoutSeconds, 10, 1800));
         try
         {
-            if (await AutoClicker.ClickAsync(window, button, timeout, ct))
+            // Pop-ups like GSPro's come from the launcher or the game it opens.
+            var hints = new List<string> { step.WaitForProcess, "GSPro", "GSPLauncher" };
+            if (_cfg.Apps.TryGetValue(step.App, out var app)) hints.Add(app.EffectiveProcessName);
+            if (!string.IsNullOrWhiteSpace(_profile.SessionProcess)) hints.Add(_profile.SessionProcess);
+
+            var result = await AutoClicker.ClickAsync(window, button, hints, timeout, ct);
+            if (result == AutoClickResult.Clicked)
                 Report(_phase, $"Pressed \"{button}\" in {window}", index, StepState.Done);
+            else if (result == AutoClickResult.Blocked)
+                Report(_phase, $"Windows blocked pressing \"{button}\" because the program runs as administrator. " +
+                               "Turn on Setup → Room & apps → System → \"Run MySimCaddie as administrator\".", index, StepState.Warning);
             else if (!quiet)
-                Report(_phase, $"Couldn't press \"{button}\" in {window} — press it yourself", index, StepState.Warning);
+                Report(_phase, $"Couldn't find \"{button}\" in {window} — press it yourself (details are in the log)", index, StepState.Warning);
         }
         catch (OperationCanceledException)
         {

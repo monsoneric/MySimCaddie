@@ -28,6 +28,15 @@ public sealed class AppConfig
 
     public bool StartWithWindows { get; set; } = true;
 
+    /// <summary>
+    /// Run MySimCaddie as administrator (via a Task Scheduler task, so no prompt at sign-in). Needed to press
+    /// buttons in programs that run as administrator, such as GSPro when its "Run as admin" is on.
+    /// </summary>
+    public bool RunElevated { get; set; }
+
+    /// <summary>Bookkeeping: what the administrator startup task was last registered for ("exe|atSignIn").</summary>
+    public string RegisteredTask { get; set; } = "";
+
     /// <summary>Run this profile automatically when the launcher starts (empty = none).</summary>
     public string AutoRunProfile { get; set; } = "";
 

@@ -54,6 +54,10 @@ Go to **Setup → Scenarios**. You don't need to edit any files.
 
 To add a program such as E6 Connect, FSX or ShotForge, go to **Setup → Room & apps → Add an app** first. It then shows up in each step's app list.
 
+## GSPro "Run as admin"
+
+If GSPro is set to **Run as admin**, Windows won't let a normal program press its buttons. Turn on **Setup → Room & apps → System → Run MySimCaddie as administrator**. Windows asks for permission once. After that, MySimCaddie starts as administrator through a Task Scheduler task named **MySimCaddie**, with no prompt at sign-in, and can press **Play!** for you. Apps it launches inherit administrator rights, so the per-app **Run as admin** prompts go away too.
+
 ## Home screen layout
 
 **Setup → Room & apps → Look → Tile position** puts the tiles in a column on the left, a column on the right, or a row across the top. Your logo fills the rest of the screen. **Logo visibility** controls how strongly it shows.

@@ -402,6 +402,9 @@ public sealed class SetupVm : Observable
     private double _logoOpacity;
     public double LogoOpacity { get => _logoOpacity; set => Set(ref _logoOpacity, Math.Round(value, 2)); }
 
+    private bool _runElevated;
+    public bool RunElevated { get => _runElevated; set => Set(ref _runElevated, value); }
+
     private bool _startWithWindows;
     public bool StartWithWindows { get => _startWithWindows; set => Set(ref _startWithWindows, value); }
 
@@ -424,6 +427,7 @@ public sealed class SetupVm : Observable
             LogoOpacity = cfg.BackgroundLogoOpacity,
             TileLayout = cfg.TileLayout,
             StartWithWindows = cfg.StartWithWindows,
+            RunElevated = cfg.RunElevated,
             ProjectorPrimaryAtStartup = cfg.PrimaryDisplayAtStartup.Equals(DisplayRoles.Projector, StringComparison.OrdinalIgnoreCase),
         };
 
@@ -490,6 +494,7 @@ public sealed class SetupVm : Observable
         cfg.BackgroundLogoOpacity = Math.Clamp(LogoOpacity, 0, 1);
         cfg.TileLayout = TileLayout;
         cfg.StartWithWindows = StartWithWindows;
+        cfg.RunElevated = RunElevated;
         cfg.PrimaryDisplayAtStartup = ProjectorPrimaryAtStartup ? DisplayRoles.Projector : "";
         cfg.LogoPath = StoreLogo(LogoPath);
 

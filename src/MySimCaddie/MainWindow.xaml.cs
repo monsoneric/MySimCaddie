@@ -398,7 +398,25 @@ public partial class MainWindow : Window
             try
             {
                 ConfigStore.Save(_cfg);
-                if (Environment.ProcessPath is { } exe) StartupRegistration.Set(_cfg.StartWithWindows, exe);
+                if (Environment.ProcessPath is { } exe)
+                {
+                    if (StartupRegistration.Sync(_cfg, exe)) ConfigStore.Save(_cfg);
+
+                    if (_cfg.RunElevated && !StartupRegistration.IsElevated)
+                    {
+                        ShowToast("Restarting MySimCaddie as administrator…");
+                        var app = (App)Application.Current;
+                        Later.Run(TimeSpan.FromSeconds(1.5), () =>
+                        {
+                            _exiting = true; // skip the exit prompt path
+                            if (!app.RelaunchElevated(exe))
+                            {
+                                _exiting = false;
+                                ShowToast("Couldn't restart as administrator (was the Windows prompt declined?)");
+                            }
+                        });
+                    }
+                }
                 ShowToast("Setup saved");
             }
             catch (Exception ex)
