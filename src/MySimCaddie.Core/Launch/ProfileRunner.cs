@@ -251,7 +251,14 @@ public sealed class ProfileRunner
         // An optional press (e.g. Connect) shows up later than the first pop-up, so it always gets the full time.
         var timeout = TimeSpan.FromSeconds(quiet && !optional ? 10 : Math.Clamp(step.AutoClickTimeoutSeconds, 10, 1800));
         var options = optional
-            ? new AutoClickOptions { Optional = true, Settle = TimeSpan.FromSeconds(6), MaxAttempts = 3, WaitForSelection = true }
+            ? new AutoClickOptions
+            {
+                Optional = true, Settle = TimeSpan.FromSeconds(10), MaxAttempts = 3, WaitForSelection = true,
+                // GSPro Connect: go by its "Connected Devices" count, not by whether the Connect tab is showing.
+                StatusLabelPrefix = AutoClicker.Normalize(button) == AutoClicker.Normalize(GsproPreset.ConnectButton)
+                    ? GsproPreset.ConnectStatusLabel
+                    : null,
+            }
             : AutoClickOptions.Default;
         try
         {

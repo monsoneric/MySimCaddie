@@ -34,6 +34,13 @@ public sealed record AutoClickOptions
     /// is empty for a few seconds while it looks for the launch monitor, and Connect then only complains.
     /// </summary>
     public bool WaitForSelection { get; init; }
+
+    /// <summary>
+    /// Status-label mode for connect buttons: a label in the window starting with this text ends in a count, e.g.
+    /// GSPro Connect's "Connected Devices: 0". The button is pressed only while the count is 0 (even if its tab isn't
+    /// showing), and it has worked once the count goes above 0.
+    /// </summary>
+    public string? StatusLabelPrefix { get; init; }
 }
 
 /// <summary>
@@ -54,6 +61,9 @@ public static class AutoClicker
         TimeSpan timeout, CancellationToken ct, AutoClickOptions? options = null)
     {
         options ??= AutoClickOptions.Default;
+        if (!string.IsNullOrWhiteSpace(options.StatusLabelPrefix))
+            return await ConnectAsync(windowTitle, buttonText, processHints, timeout, ct, options);
+
         var hints = processHints.Where(h => !string.IsNullOrWhiteSpace(h))
             .Select(h => h.Trim().Replace(".exe", "", StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -207,6 +217,180 @@ public static class AutoClicker
         return AutoClickResult.NotFound;
     }
 
+    /// <summary>
+    /// Status-label mode (see <see cref="AutoClickOptions.StatusLabelPrefix"/>), for GSPro Connect: it can flip to its
+    /// Shot Data tab without connecting, so the button being hidden says nothing. The count label does.
+    /// </summary>
+    private static async Task<AutoClickResult> ConnectAsync(string windowTitle, string buttonText, IEnumerable<string> processHints,
+        TimeSpan timeout, CancellationToken ct, AutoClickOptions options)
+    {
+        var prefix = options.StatusLabelPrefix!;
+        var deadline = DateTime.UtcNow + timeout;
+        IntPtr lastWindow = IntPtr.Zero;
+        DateTime? readySince = null;
+        int presses = 0;
+        bool loggedWaiting = false, sawNotReady = false;
+        string lastState = "";
+
+        Log.Info($"Auto-press: watching \"{windowTitle}\" — will press \"{buttonText}\" if \"{prefix}\" stays at 0");
+
+        while (DateTime.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var window = FindWindowByTitle(windowTitle);
+            if (window == IntPtr.Zero)
+            {
+                await Task.Delay(500, ct);
+                continue;
+            }
+
+            if (window != lastWindow)
+            {
+                lastWindow = window;
+                readySince = null;
+                Log.Info($"Auto-press: found {Describe(window)}");
+                if (IsBlockedByElevation(window))
+                {
+                    Log.Warn("Auto-press: that window belongs to a program running as administrator and MySimCaddie isn't, so Windows blocks the click");
+                    return AutoClickResult.Blocked;
+                }
+            }
+
+            DismissComplaint(window);
+
+            var count = ReadCount(window, prefix);
+            var button = FindChildButton(window, buttonText, requireVisible: false);
+            bool selected = button != IntPtr.Zero && SiblingListsHaveSelection(button);
+            var state = $"count={(count?.ToString() ?? "?")}, button={(button != IntPtr.Zero ? "yes" : "no")}, device selected={selected}";
+            if (state != lastState)
+            {
+                lastState = state;
+                Log.Info($"Auto-press: {windowTitle}: {state}");
+            }
+
+            if (count > 0)
+            {
+                Log.Info(presses == 0 ? $"Auto-press: connected by itself — \"{buttonText}\" not needed" : $"Auto-press: connected after pressing \"{buttonText}\"");
+                return presses == 0 ? AutoClickResult.NotFound : AutoClickResult.Clicked;
+            }
+
+            if (count is null || button == IntPtr.Zero || !selected)
+            {
+                // No device in the list yet (it's still searching), or the window isn't fully built.
+                sawNotReady |= count == 0 && button != IntPtr.Zero;
+                readySince = null;
+                await Task.Delay(500, ct);
+                continue;
+            }
+
+            sawNotReady = false;
+            readySince ??= DateTime.UtcNow;
+            if (DateTime.UtcNow - readySince < options.Settle)
+            {
+                if (!loggedWaiting)
+                {
+                    loggedWaiting = true;
+                    Log.Info($"Auto-press: device selected but not connected; giving it {options.Settle.TotalSeconds:0}s to connect by itself");
+                }
+
+                await Task.Delay(500, ct);
+                continue;
+            }
+
+            if (presses >= options.MaxAttempts)
+            {
+                Log.Warn($"Auto-press: pressed \"{buttonText}\" {presses} times and it still isn't connected; giving up");
+                return AutoClickResult.StillShowing;
+            }
+
+            // The button can be on a tab that isn't showing, so send the click message instead of clicking the screen.
+            presses++;
+            int id = Native.GetDlgCtrlID(button);
+            var wParam = (IntPtr)((Native.BN_CLICKED << 16) | (id & 0xFFFF));
+            Native.PostMessage(window, Native.WM_COMMAND, wParam, button);
+            Log.Info($"Auto-press: pressed \"{buttonText}\" (try {presses})");
+
+            // Connecting over Wi-Fi takes a few seconds.
+            readySince = DateTime.UtcNow + TimeSpan.FromSeconds(15) - options.Settle;
+            loggedWaiting = true;
+            await Task.Delay(1000, ct);
+        }
+
+        if (presses > 0)
+        {
+            Log.Warn($"Auto-press: still not connected after pressing \"{buttonText}\" {presses} times");
+            return AutoClickResult.StillShowing;
+        }
+
+        if (sawNotReady)
+        {
+            Log.Warn($"Auto-press: {windowTitle} never had a device to connect to; not pressed");
+            return AutoClickResult.NeverReady;
+        }
+
+        Log.Info($"Auto-press: \"{buttonText}\" never needed pressing");
+        return AutoClickResult.NotFound;
+    }
+
+    private static IntPtr FindWindowByTitle(string titleContains)
+    {
+        int self = Environment.ProcessId;
+        var title = (titleContains ?? "").Trim();
+        if (title.Length == 0) return IntPtr.Zero;
+        IntPtr found = IntPtr.Zero;
+        Native.EnumWindows((hwnd, _) =>
+        {
+            if (!Native.IsWindowVisible(hwnd)) return true;
+            Native.GetWindowThreadProcessId(hwnd, out var pid);
+            if (pid == self) return true;
+            if (!GetText(hwnd).Contains(title, StringComparison.OrdinalIgnoreCase)) return true;
+            found = hwnd;
+            return false;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    /// <summary>"Connected Devices: 2" → 2. Null if there's no such label.</summary>
+    private static int? ReadCount(IntPtr window, string prefix)
+    {
+        int? count = null;
+        Native.EnumChildWindows(window, (child, _) =>
+        {
+            var text = GetText(child).Trim();
+            if (!text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
+            var digits = new string(text[prefix.Length..].Where(char.IsDigit).ToArray());
+            count = int.TryParse(digits, out var n) ? n : 0;
+            return false;
+        }, IntPtr.Zero);
+        return count;
+    }
+
+    /// <summary>Drop-down lists next to the button (same parent) all have something selected.</summary>
+    private static bool SiblingListsHaveSelection(IntPtr button)
+    {
+        var parent = Native.GetParent(button);
+        if (parent == IntPtr.Zero) return true;
+        bool ok = true, any = false;
+        Native.EnumChildWindows(parent, (child, _) =>
+        {
+            if (Native.GetParent(child) != parent) return true;
+            var cls = new StringBuilder(128);
+            Native.GetClassName(child, cls, cls.Capacity);
+            if (!cls.ToString().Contains("COMBOBOX", StringComparison.OrdinalIgnoreCase)) return true;
+            any = true;
+            if (Native.SendMessageTimeout(child, Native.CB_GETCURSEL, IntPtr.Zero, IntPtr.Zero, Native.SMTO_ABORTIFHUNG, 500, out var sel) != IntPtr.Zero
+                && sel.ToInt64() < 0)
+            {
+                ok = false;
+                return false;
+            }
+
+            return true;
+        }, IntPtr.Zero);
+        return ok || !any;
+    }
+
     public static bool IsCurrentProcessElevated()
     {
         try
@@ -251,13 +435,13 @@ public static class AutoClicker
         return byTitle != IntPtr.Zero ? byTitle : byProcess;
     }
 
-    private static IntPtr FindChildButton(IntPtr dialog, string buttonText)
+    private static IntPtr FindChildButton(IntPtr dialog, string buttonText, bool requireVisible = true)
     {
         var want = Normalize(buttonText);
         IntPtr found = IntPtr.Zero;
         Native.EnumChildWindows(dialog, (child, _) =>
         {
-            if (Normalize(GetText(child)) == want && Native.IsWindowVisible(child))
+            if (Normalize(GetText(child)) == want && (!requireVisible || Native.IsWindowVisible(child)) && IsButton(child))
             {
                 found = child;
                 return false;
@@ -318,6 +502,13 @@ public static class AutoClicker
             return true; // close every one of them
         }, IntPtr.Zero);
         return found;
+    }
+
+    private static bool IsButton(IntPtr hwnd)
+    {
+        var cls = new StringBuilder(128);
+        Native.GetClassName(hwnd, cls, cls.Capacity);
+        return cls.ToString().Contains("BUTTON", StringComparison.OrdinalIgnoreCase);
     }
 
     // ───────────── Clicking ─────────────

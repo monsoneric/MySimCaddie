@@ -259,6 +259,9 @@ public static class Native
     [DllImport("user32.dll")]
     public static extern int GetDlgCtrlID(IntPtr hwnd);
 
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetParent(IntPtr hwnd);
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 

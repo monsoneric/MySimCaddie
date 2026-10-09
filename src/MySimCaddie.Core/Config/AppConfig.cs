@@ -217,6 +217,9 @@ public static class GsproPreset
     public const string ConnectWindow = "GSPro x Foresight";
     public const string ConnectButton = "Connect";
 
+    /// <summary>GSPro Connect's Connection Manager label, e.g. "Connected Devices: 0".</summary>
+    public const string ConnectStatusLabel = "Connected Devices:";
+
     public static bool IsGspro(string? exePath)
     {
         var name = System.IO.Path.GetFileName(Environment.ExpandEnvironmentVariables(exePath ?? ""));
