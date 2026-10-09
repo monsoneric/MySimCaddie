@@ -282,9 +282,13 @@ public partial class MainWindow : Window
         await StartSessionAsync(tile.Profile);
     }
 
+    private Profile? _sessionProfile;
+
     private async Task StartSessionAsync(Profile profile)
     {
         if (_sessionCts is not null) return;
+        _sessionProfile = profile;
+        _vm.GameName = profile.SessionProcess?.Trim() ?? "";
 
         _vm.Steps.Clear();
         foreach (var title in ProfileRunner.DescribeSteps(_cfg, profile))
@@ -357,7 +361,27 @@ public partial class MainWindow : Window
         Log.Info("Session card hidden; round keeps running");
     }
 
-    private void ShowSessionCard_Click(object sender, RoutedEventArgs e) => _vm.IsSessionCardHidden = false;
+    private void ShowSessionCard_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.IsSessionCardHidden = false;
+        Log.Info("Session card shown again");
+    }
+
+    /// <summary>Switch back into the game (e.g. GSPro) without ending anything.</summary>
+    private void BackToGame_Click(object sender, RoutedEventArgs e)
+    {
+        var proc = _sessionProfile?.SessionProcess;
+        if (string.IsNullOrWhiteSpace(proc))
+        {
+            ShowToast("This scenario has no game to go back to");
+            return;
+        }
+
+        _vm.IsSessionCardHidden = false;
+        bool ok = WindowPlacer.BringToFront(proc);
+        Log.Info(ok ? $"Switched back to {proc}" : $"Couldn't bring {proc} to the front");
+        if (!ok) ShowToast($"Couldn't find {proc}'s window");
+    }
 
     private void EndSession_Click(object sender, RoutedEventArgs e)
     {

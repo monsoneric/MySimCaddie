@@ -273,6 +273,15 @@
                                         <TextBlock x:Name="EndSessionText" Text="End Session" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+                                <Button Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="BackToGame_Click"
+                                        Visibility="{Binding HasGame, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE768;" FontSize="18" />
+                                        <TextBlock FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center">
+                                            <Run Text="Back to" /> <Run Text="{Binding GameName, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Button>
                                 <Button Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="HideSessionCard_Click"
                                         ToolTip="Go to the home screen and Setup while the game keeps running">
                                     <StackPanel Orientation="Horizontal">
@@ -298,10 +307,20 @@
                             <Run Text="{Binding SessionTitle, Mode=OneWay}" FontWeight="SemiBold" />
                             <Run Text="is still running" />
                         </TextBlock>
-                        <Button Style="{StaticResource PillButton}" Click="ShowSessionCard_Click">
+                        <Button Style="{StaticResource PillButton}" Click="BackToGame_Click"
+                                Visibility="{Binding HasGame, Converter={StaticResource BoolToVis}}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" FontSize="18" />
-                                <TextBlock Text="Back to round" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE768;" FontSize="18" />
+                                <TextBlock FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <Run Text="Back to" /> <Run Text="{Binding GameName, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource PillButton}" Margin="12,0,0,0" Click="ShowSessionCard_Click"
+                                ToolTip="The round's progress screen, with End Session">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE9D9;" FontSize="18" />
+                                <TextBlock Text="Round status" FontSize="18" Margin="10,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </StackPanel>

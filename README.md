@@ -91,7 +91,7 @@ Everything lives in `%APPDATA%\MySimCaddie\config.json`. Setup → **Open config
 
 ## During a round
 
-The round screen has **Home screen**, which brings back the tiles and **Setup** without closing the game. A banner at the top shows the round is still running, and **Back to round** returns to the round screen, where **End Session** is.
+The round screen has **Home screen**, which brings back the tiles and **Setup** without closing the game. A banner at the top shows the round is still running. **Back to GSPro** (named after the round's game) switches straight back into the game, and **Round status** shows the round screen again, where **End Session** is. The round screen has **Back to GSPro** too, and **Ctrl + Alt + H** brings MySimCaddie back from inside the game.
 
 ## Troubleshooting
 

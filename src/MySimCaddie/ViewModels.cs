@@ -213,6 +213,19 @@ public sealed class MainVm : Observable
     private string _sessionPhase = "";
     public string SessionPhase { get => _sessionPhase; set => Set(ref _sessionPhase, value); }
 
+    private string _gameName = "";
+    /// <summary>The program a round runs in (e.g. GSPro), for the "Back to GSPro" buttons; empty when there isn't one.</summary>
+    public string GameName
+    {
+        get => _gameName;
+        set
+        {
+            if (Set(ref _gameName, value ?? "")) Raise(nameof(HasGame));
+        }
+    }
+
+    public bool HasGame => GameName.Length > 0;
+
     private string _sessionHint = "";
     public string SessionHint { get => _sessionHint; set => Set(ref _sessionHint, value); }
 

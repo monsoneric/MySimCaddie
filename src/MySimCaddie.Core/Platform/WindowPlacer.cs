@@ -88,6 +88,19 @@ public static class WindowPlacer
         Native.MonitorFromWindow(hwnd, Native.MONITOR_DEFAULTTONEAREST) == display.HMonitor;
 
     /// <summary>Largest visible, unowned, titled top-level window belonging to any process with this name.</summary>
+    /// <summary>Brings a program's main window to the front (e.g. back into GSPro from the launcher).</summary>
+    public static bool BringToFront(string processName)
+    {
+        var hwnd = FindMainWindow(processName);
+        if (hwnd == IntPtr.Zero) return false;
+        if (Native.IsIconic(hwnd)) Native.ShowWindow(hwnd, Native.SW_RESTORE);
+
+        // Windows only lets the foreground program hand over focus; a tap of Alt counts as input and unlocks it.
+        Native.keybd_event(Native.VK_MENU, 0, 0, UIntPtr.Zero);
+        Native.keybd_event(Native.VK_MENU, 0, Native.KEYEVENTF_KEYUP, UIntPtr.Zero);
+        return Native.SetForegroundWindow(hwnd);
+    }
+
     public static IntPtr FindMainWindow(string processName)
     {
         var pids = ProcessTools.GetPids(processName);
