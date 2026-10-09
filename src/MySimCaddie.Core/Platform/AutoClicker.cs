@@ -224,15 +224,15 @@ public static class AutoClicker
     private static async Task<AutoClickResult> ConnectAsync(string windowTitle, string buttonText, IEnumerable<string> processHints,
         TimeSpan timeout, CancellationToken ct, AutoClickOptions options)
     {
+        const string searchText = "Search";
         var prefix = options.StatusLabelPrefix!;
         var deadline = DateTime.UtcNow + timeout;
         IntPtr lastWindow = IntPtr.Zero;
-        DateTime? readySince = null;
-        int presses = 0;
-        bool loggedWaiting = false, sawNotReady = false;
+        DateTime? selectedSince = null, unselectedSince = null, lastSearch = null, lastConnect = null;
+        int connects = 0, searches = 0;
         string lastState = "";
 
-        Log.Info($"Auto-press: watching \"{windowTitle}\" — will press \"{buttonText}\" if \"{prefix}\" stays at 0");
+        Log.Info($"Auto-press: watching \"{windowTitle}\" — will press {searchText} and \"{buttonText}\" if \"{prefix}\" stays at 0");
 
         while (DateTime.UtcNow < deadline)
         {
@@ -248,8 +248,8 @@ public static class AutoClicker
             if (window != lastWindow)
             {
                 lastWindow = window;
-                readySince = null;
-                Log.Info($"Auto-press: found {Describe(window)}");
+                selectedSince = unselectedSince = null;
+                Log.Info($"Auto-press: found {Describe(window)} controls: {DescribeChildren(window, remote: true)}");
                 if (IsBlockedByElevation(window))
                 {
                     Log.Warn("Auto-press: that window belongs to a program running as administrator and MySimCaddie isn't, so Windows blocks the click");
@@ -260,9 +260,10 @@ public static class AutoClicker
             DismissComplaint(window);
 
             var count = ReadCount(window, prefix);
-            var button = FindChildButton(window, buttonText, requireVisible: false);
-            bool selected = button != IntPtr.Zero && SiblingListsHaveSelection(button);
-            var state = $"count={(count?.ToString() ?? "?")}, button={(button != IntPtr.Zero ? "yes" : "no")}, device selected={selected}";
+            var connect = FindChildButton(window, buttonText, requireVisible: false);
+            var search = FindChildButton(window, searchText, requireVisible: false);
+            bool selected = connect != IntPtr.Zero && SiblingListsHaveSelection(connect);
+            var state = $"count={(count?.ToString() ?? "?")}, connect={(connect != IntPtr.Zero ? "yes" : "no")}, search={(search != IntPtr.Zero ? "yes" : "no")}, device selected={selected}";
             if (state != lastState)
             {
                 lastState = state;
@@ -271,66 +272,96 @@ public static class AutoClicker
 
             if (count > 0)
             {
-                Log.Info(presses == 0 ? $"Auto-press: connected by itself — \"{buttonText}\" not needed" : $"Auto-press: connected after pressing \"{buttonText}\"");
-                return presses == 0 ? AutoClickResult.NotFound : AutoClickResult.Clicked;
+                Log.Info(connects == 0 && searches == 0
+                    ? $"Auto-press: connected by itself — nothing to press"
+                    : $"Auto-press: connected ({searches} search, {connects} connect)");
+                return connects == 0 && searches == 0 ? AutoClickResult.NotFound : AutoClickResult.Clicked;
             }
 
-            if (count is null || button == IntPtr.Zero || !selected)
+            if (connect == IntPtr.Zero)
             {
-                // No device in the list yet (it's still searching), or the window isn't fully built.
-                sawNotReady |= count == 0 && button != IntPtr.Zero;
-                readySince = null;
                 await Task.Delay(500, ct);
                 continue;
             }
 
-            sawNotReady = false;
-            readySince ??= DateTime.UtcNow;
-            if (DateTime.UtcNow - readySince < options.Settle)
+            var now = DateTime.UtcNow;
+            if (selected)
             {
-                if (!loggedWaiting)
+                unselectedSince = null;
+                selectedSince ??= now;
+
+                // GSPro Connect tries the device itself as soon as it's listed; give that a chance, unless we searched.
+                var wait = lastSearch is not null ? TimeSpan.FromSeconds(3) : options.Settle;
+                bool connectDue = now - selectedSince >= wait && (lastConnect is null || now - lastConnect >= TimeSpan.FromSeconds(15));
+                if (connectDue)
                 {
-                    loggedWaiting = true;
-                    Log.Info($"Auto-press: device selected but not connected; giving it {options.Settle.TotalSeconds:0}s to connect by itself");
+                    if (connects >= options.MaxAttempts)
+                    {
+                        Log.Warn($"Auto-press: pressed \"{buttonText}\" {connects} times and it still isn't connected; giving up");
+                        return AutoClickResult.StillShowing;
+                    }
+
+                    connects++;
+                    lastConnect = now;
+                    Press(window, connect);
+                    Log.Info($"Auto-press: pressed \"{buttonText}\" (try {connects})");
+
+                    if (count is null)
+                    {
+                        // Can't tell whether it worked, so don't risk pressing Connect on a live connection.
+                        Log.Warn($"Auto-press: couldn't read \"{prefix}\", so pressing \"{buttonText}\" only once");
+                        return AutoClickResult.Clicked;
+                    }
                 }
-
-                await Task.Delay(500, ct);
-                continue;
             }
-
-            if (presses >= options.MaxAttempts)
+            else
             {
-                Log.Warn($"Auto-press: pressed \"{buttonText}\" {presses} times and it still isn't connected; giving up");
-                return AutoClickResult.StillShowing;
+                selectedSince = null;
+                unselectedSince ??= now;
+
+                // Nothing in the list (its own try failed, or it's still looking): press Search, then Connect once it's listed.
+                bool searchDue = search != IntPtr.Zero && now - unselectedSince >= TimeSpan.FromSeconds(4)
+                                 && (lastSearch is null || now - lastSearch >= TimeSpan.FromSeconds(15));
+                if (searchDue)
+                {
+                    if (searches >= options.MaxAttempts + 1)
+                    {
+                        Log.Warn($"Auto-press: pressed {searchText} {searches} times and no device showed up; giving up");
+                        return AutoClickResult.NeverReady;
+                    }
+
+                    searches++;
+                    lastSearch = now;
+                    Press(window, search);
+                    Log.Info($"Auto-press: pressed {searchText} (try {searches})");
+                }
             }
 
-            // The button can be on a tab that isn't showing, so send the click message instead of clicking the screen.
-            presses++;
-            int id = Native.GetDlgCtrlID(button);
-            var wParam = (IntPtr)((Native.BN_CLICKED << 16) | (id & 0xFFFF));
-            Native.PostMessage(window, Native.WM_COMMAND, wParam, button);
-            Log.Info($"Auto-press: pressed \"{buttonText}\" (try {presses})");
-
-            // Connecting over Wi-Fi takes a few seconds.
-            readySince = DateTime.UtcNow + TimeSpan.FromSeconds(15) - options.Settle;
-            loggedWaiting = true;
-            await Task.Delay(1000, ct);
+            await Task.Delay(500, ct);
         }
 
-        if (presses > 0)
+        if (connects > 0)
         {
-            Log.Warn($"Auto-press: still not connected after pressing \"{buttonText}\" {presses} times");
+            Log.Warn($"Auto-press: still not connected after pressing \"{buttonText}\" {connects} times");
             return AutoClickResult.StillShowing;
         }
 
-        if (sawNotReady)
+        if (searches > 0)
         {
-            Log.Warn($"Auto-press: {windowTitle} never had a device to connect to; not pressed");
+            Log.Warn($"Auto-press: {windowTitle} never listed a device to connect to");
             return AutoClickResult.NeverReady;
         }
 
         Log.Info($"Auto-press: \"{buttonText}\" never needed pressing");
         return AutoClickResult.NotFound;
+    }
+
+    /// <summary>Sends the button's click message to its window, which works even when its tab isn't showing.</summary>
+    private static void Press(IntPtr window, IntPtr button)
+    {
+        int id = Native.GetDlgCtrlID(button);
+        var wParam = (IntPtr)((Native.BN_CLICKED << 16) | (id & 0xFFFF));
+        Native.PostMessage(window, Native.WM_COMMAND, wParam, button);
     }
 
     private static IntPtr FindWindowByTitle(string titleContains)
@@ -357,7 +388,7 @@ public static class AutoClicker
         int? count = null;
         Native.EnumChildWindows(window, (child, _) =>
         {
-            var text = GetText(child).Trim();
+            var text = GetRemoteText(child).Trim();
             if (!text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
             var digits = new string(text[prefix.Length..].Where(char.IsDigit).ToArray());
             count = int.TryParse(digits, out var n) ? n : 0;
@@ -617,15 +648,16 @@ public static class AutoClicker
         return (parts.Count == 0 ? "(no matching windows)" : string.Join(" | ", parts)) + $" — processes: {running}; MySimCaddie admin: {(IsCurrentProcessElevated() ? "yes" : "no")}";
     }
 
-    private static string DescribeChildren(IntPtr dialog)
+    private static string DescribeChildren(IntPtr dialog, bool remote = false)
     {
         var parts = new List<string>();
         Native.EnumChildWindows(dialog, (child, _) =>
         {
             var cls = new StringBuilder(128);
             Native.GetClassName(child, cls, cls.Capacity);
-            parts.Add($"[{cls}] \"{GetText(child)}\"");
-            return parts.Count < 30;
+            var text = remote ? GetRemoteText(child) : GetText(child);
+            parts.Add($"[{cls}] \"{text}\"{(Native.IsWindowVisible(child) ? "" : " (hidden)")}");
+            return parts.Count < 40;
         }, IntPtr.Zero);
         return parts.Count == 0 ? "(none)" : string.Join(", ", parts);
     }
@@ -641,6 +673,18 @@ public static class AutoClicker
         {
             return "?";
         }
+    }
+
+    /// <summary>
+    /// A control's text as the program sees it. GetWindowText can't read many controls in other programs
+    /// (it only returns a cached caption), but WM_GETTEXT is passed through to them.
+    /// </summary>
+    private static string GetRemoteText(IntPtr hwnd)
+    {
+        var sb = new StringBuilder(512);
+        return Native.SendMessageTimeout(hwnd, Native.WM_GETTEXT, (IntPtr)sb.Capacity, sb, Native.SMTO_ABORTIFHUNG, 500, out _) != IntPtr.Zero
+            ? sb.ToString()
+            : GetText(hwnd);
     }
 
     private static string GetText(IntPtr hwnd)
